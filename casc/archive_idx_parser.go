@@ -1,18 +1,45 @@
 package casc
 
-import "io"
+import (
+	"bytes"
+	"encoding/binary"
+	"io"
+)
 
 const arBlockSize uint32 = 1 << 20
 
-type ArchiveIndex struct {
-	BlteHeaderHash  [8]uint8
-	BlteEncodedSize uint32
-	BlteOffset      uint32
+type ArchiveIndexEntry struct {
+	HeaderHash  [8]uint8
+	EncodedSize uint32
+	Offset      uint32
 }
 
-func ParseArchiveIndex(r io.Reader) (ArchiveIndex, error) {
+//TODO simpler impl
+func ParseArchiveIndex(r io.Reader) ([]ArchiveIndexEntry, error) {
+	idxs := []ArchiveIndexEntry{}
+	for {
+		var chunk [4096]uint8
+		if err := binary.Read(r, binary.BigEndian, &chunk); err != nil {
+			if err == io.EOF || err == io.ErrUnexpectedEOF {
+				return idxs, nil
+			}
+			return nil, err
+		}
 
-	size := 4096
-	_ = size
-	return ArchiveIndex{}, nil
+		buf := bytes.NewBuffer(chunk[:])
+		for {
+			idxEntry := ArchiveIndexEntry{}
+			if err := binary.Read(buf, binary.BigEndian, &idxEntry); err != nil {
+				if err == io.EOF || err == io.ErrUnexpectedEOF {
+					return idxs, nil
+				}
+				return nil, err
+			}
+
+			if idxEntry == (ArchiveIndexEntry{}) {
+				break
+			}
+			idxs = append(idxs, idxEntry)
+		}
+	}
 }

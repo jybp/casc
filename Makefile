@@ -1,8 +1,8 @@
 build: 
-	@cd ./cmd; go build
+	@cd ./d3/cmd/parser; go build
 
 run: 
-	@cd ./cmd; go build; ./cmd
+	@cd ./d3/cmd/parser; go build; ./parser
 
 test:
 	go test -v ./...

@@ -1,6 +1,7 @@
 package d3
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -23,6 +24,9 @@ func (d Downloader) Download(rawurl string) (io.ReadCloser, error) {
 	resp, err := d.Client.Get(rawurl)
 	if err != nil {
 		return nil, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("download %s failed (%d)", rawurl, resp.StatusCode)
 	}
 	return resp.Body, nil
 }

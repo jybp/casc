@@ -7,6 +7,7 @@ import (
 )
 
 func main() {
-	err := d3.Parse()
-	log.Printf("%+v", err)
+	if err := d3.Parse(); err != nil {
+		log.Printf("%+v", err)
+	}
 }

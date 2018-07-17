@@ -53,8 +53,7 @@ type Encoding struct {
 //Warning: BLTE encoded
 func ParseEncoding(r io.Reader) (Encoding, error) {
 	h := &encFileHeader{}
-	err := binary.Read(r, binary.BigEndian, h)
-	if err != nil {
+	if err := binary.Read(r, binary.BigEndian, h); err != nil {
 		return Encoding{}, err
 	}
 
@@ -64,8 +63,7 @@ func ParseEncoding(r io.Reader) (Encoding, error) {
 		return Encoding{}, errors.New("invalid encoding header")
 	}
 
-	_, err = io.ReadFull(r, make([]uint8, h.EspecBlockSize))
-	if err != nil {
+	if _, err := io.ReadFull(r, make([]uint8, h.EspecBlockSize)); err != nil {
 		return Encoding{}, err
 	}
 
@@ -73,64 +71,52 @@ func ParseEncoding(r io.Reader) (Encoding, error) {
 	for i := uint32(0); i < h.CPageCount; i++ {
 		idx := encPageIndex{}
 		idx.Hash = make([]uint8, h.CHashSize)
-		err := binary.Read(r, binary.BigEndian, &idx.Hash)
-		if err != nil {
+		if err := binary.Read(r, binary.BigEndian, &idx.Hash); err != nil {
 			return Encoding{}, err
 		}
-
-		err = binary.Read(r, binary.BigEndian, &idx.Checksum)
-		if err != nil {
+		if err := binary.Read(r, binary.BigEndian, &idx.Checksum); err != nil {
 			return Encoding{}, err
 		}
-
 		cPageIndices = append(cPageIndices, idx)
 	}
 
 	encoding := Encoding{}
 	for _, idx := range cPageIndices {
 		CTableData := make([]byte, h.CPageSize*1024)
-		err = binary.Read(r, binary.BigEndian, &CTableData)
-		if err != nil {
+		if err := binary.Read(r, binary.BigEndian, &CTableData); err != nil {
 			return Encoding{}, err
 		}
 
-		hash := md5.Sum(CTableData)
-		if string(hash[:]) != string(idx.Checksum[:]) {
+		if hash := md5.Sum(CTableData); bytes.Compare(hash[:], idx.Checksum[:]) != 0 {
 			return Encoding{}, errors.New("encoding file invalid checksum")
 		}
 
 		CTableDataBuf := bytes.NewBuffer(CTableData)
 		cEntry := encCPageEntry{}
-		err = binary.Read(CTableDataBuf, binary.LittleEndian, &cEntry.KeyCount)
-		if err != nil {
+		if err := binary.Read(CTableDataBuf, binary.LittleEndian, &cEntry.KeyCount); err != nil {
 			return Encoding{}, err
 		}
 
-		err = binary.Read(CTableDataBuf, binary.BigEndian, &cEntry.FileSize)
-		if err != nil {
+		if err := binary.Read(CTableDataBuf, binary.BigEndian, &cEntry.FileSize); err != nil {
 			return Encoding{}, err
 		}
 
 		cEntry.Ckey = make([]uint8, h.CHashSize)
-		err = binary.Read(CTableDataBuf, binary.BigEndian, &cEntry.Ckey)
-		if err != nil {
+		if err := binary.Read(CTableDataBuf, binary.BigEndian, &cEntry.Ckey); err != nil {
 			return Encoding{}, err
 		}
 
 		for i := uint16(0); i < cEntry.KeyCount; i++ {
 			ekey := make([]uint8, h.EHashSize)
-			err = binary.Read(CTableDataBuf, binary.BigEndian, &ekey)
-			if err != nil {
+			if err := binary.Read(CTableDataBuf, binary.BigEndian, &ekey); err != nil {
 				return Encoding{}, err
 			}
-
 			cEntry.Ekey = append(cEntry.Ekey, ekey)
 		}
 
 		encoding.EncCTable = append(encoding.EncCTable, encCTableEntry{Index: idx, Entry: cEntry})
 	}
 
-	//CETable is next
-
+	//EKeySpecPageTable is next
 	return encoding, nil
 }
