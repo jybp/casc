@@ -4,104 +4,126 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/jybp/go-d3-auto-parser/blte"
 
-	"github.com/jybp/go-d3-auto-parser/csac"
+	"github.com/jybp/go-d3-auto-parser/casc"
 )
 
 func Parse() error {
 
-	hostURL := csac.HostURL(csac.RegionUS)
-
-	cache := Cache{Output: "cache"}
-
+	hostURL := casc.HostURL(casc.RegionUS)
 	app := "d3"
-	verR, err := cache.Download(csac.VersionsURL(hostURL, app))
+
+	// Download and check version to set cache folder
+	dl := Downloader{}
+	verR, err := dl.Download(casc.VersionsURL(hostURL, app))
+	if err != nil {
+		return err
+	}
+	defer verR.Close()
+
+	vers, err := casc.ParseVersions(verR)
 	if err != nil {
 		return err
 	}
 
-	vers, err := csac.ParseVersions(verR)
-	if err != nil {
-		return err
-	}
-
-	cdnR, err := cache.Download(csac.CdnsURL(hostURL, app))
-	if err != nil {
-		return err
-	}
-
-	cdns, err := csac.ParseCdn(cdnR)
-	if err != nil {
-		return err
-	}
-
-	cdn, ok := cdns[csac.RegionUS]
-	if !ok {
-		return errors.New("cdn region not found")
-	}
-
-	ver, ok := vers[csac.RegionUS]
+	ver, ok := vers[casc.RegionUS]
 	if !ok {
 		return errors.New("ver region not found")
 	}
 
-	cfgR, err := cache.Download(cdn.Url(csac.TypeConfig, ver.BuildHash, false))
+	cache := Cache{Downloader: dl, Output: "cache/" + app + "_" + strconv.Itoa(ver.ID)}
+
+	// Download version file locally
+	verRcache, err := cache.Download(casc.VersionsURL(hostURL, app))
+	if err != nil {
+		return err
+	}
+	defer verRcache.Close()
+
+	// CDN urls
+	cdnR, err := cache.Download(casc.CdnsURL(hostURL, app))
+	if err != nil {
+		return err
+	}
+	defer cdnR.Close()
+
+	cdns, err := casc.ParseCdn(cdnR)
 	if err != nil {
 		return err
 	}
 
-	cfg, err := csac.ParseBuildConfig(cfgR)
+	cdn, ok := cdns[casc.RegionUS]
+	if !ok {
+		return errors.New("cdn region not found")
+	}
+
+	// Build Config
+	cfgR, err := cache.Download(cdn.Url(casc.TypeConfig, ver.BuildHash, false))
+	if err != nil {
+		return err
+	}
+	defer cfgR.Close()
+
+	cfg, err := casc.ParseBuildConfig(cfgR)
 	if err != nil {
 		return err
 	}
 
-	encR, err := cache.Download(cdn.Url(csac.TypeData, cfg.EncodingHash[1], false))
+	// Encoding File
+	encR, err := cache.Download(cdn.Url(casc.TypeData, cfg.EncodingHash[1], false))
 	if err != nil {
 		return err
 	}
+	defer encR.Close()
 
 	encRdec := bytes.NewBuffer([]byte{})
 	if err = blte.Decode(encR, encRdec); err != nil {
 		return err
 	}
 
-	enc, err := csac.ParseEncoding(encRdec)
+	enc, err := casc.ParseEncoding(encRdec)
 	if err != nil {
 		return err
 	}
 
 	fmt.Println("encTable: ", len(enc.EncCTable))
 
-	cdnCfgR, err := cache.Download(cdn.Url(csac.TypeConfig, ver.CDNHash, false))
+	// CDN Config
+	cdnCfgR, err := cache.Download(cdn.Url(casc.TypeConfig, ver.CDNHash, false))
 	if err != nil {
 		return err
 	}
+	defer cdnCfgR.Close()
 
-	cdnCfg, err := csac.ParseCdnConfig(cdnCfgR)
+	cdnCfg, err := casc.ParseCdnConfig(cdnCfgR)
 	if err != nil {
 		return err
 	}
 
 	fmt.Println("archives hashes: ", len(cdnCfg.ArchivesHashes))
 
-	archivesIdx := []csac.ArchiveIndex{}
+	// Archives
+	// map archive hash to archive data
+	archivesIdx := map[string]casc.ArchiveIndex{}
 	for _, hash := range cdnCfg.ArchivesHashes {
 
 		fmt.Println("archivesIdx", hash)
 
-		idxR, err := cache.Download(cdn.Url(csac.TypeData, hash, true))
+		idxR, err := cache.Download(cdn.Url(casc.TypeData, hash, true))
+		if err != nil {
+			return err
+		}
+		defer idxR.Close()
+
+		idx, err := casc.ParseArchiveIndex(idxR)
 		if err != nil {
 			return err
 		}
 
-		idx, err := csac.ParseArchiveIndex(idxR)
-		if err != nil {
-			return err
-		}
-
-		archivesIdx = append(archivesIdx, idx)
+		archivesIdx[hash] = idx
 	}
 
 	return nil

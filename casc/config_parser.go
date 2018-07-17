@@ -1,4 +1,4 @@
-package csac
+package casc
 
 import (
 	"bufio"

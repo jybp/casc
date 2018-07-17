@@ -9,7 +9,7 @@ import (
 
 func TestReader(t *testing.T) {
 	//Requires valid encoded and decoded version of a file
-	return
+	//return
 
 	e, err := os.Open("test_encoded")
 	if err != nil {

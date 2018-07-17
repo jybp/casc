@@ -4,7 +4,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	neturl "net/url"
+	"net/url"
 	"os"
 	"path"
 	"strings"
@@ -12,38 +12,46 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Cache will only download files if they can't be found locally under the Output folder
-type Cache struct {
-	Output string
+type Downloader struct {
 	Client *http.Client
 }
 
-func (c Cache) Download(rawurl string) (io.ReadCloser, error) {
-
-	if c.Client == nil {
-		c.Client = http.DefaultClient
+func (d Downloader) Download(rawurl string) (io.ReadCloser, error) {
+	if d.Client == nil {
+		d.Client = http.DefaultClient
 	}
+	resp, err := d.Client.Get(rawurl)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Body, nil
+}
 
-	url, err := neturl.Parse(rawurl)
+type Cache struct {
+	Downloader Downloader
+	Output     string
+}
+
+func (c Cache) Download(rawurl string) (io.ReadCloser, error) {
+	u, err := url.Parse(rawurl)
 	if err != nil {
 		return nil, err
 	}
 
-	i := strings.LastIndex(url.Path, "/")
-	dir := path.Join(c.Output, url.Hostname(), url.Path[:i])
-	filePath := dir + url.Path[i:]
-
+	i := strings.LastIndex(u.Path, "/")
+	dir := path.Join(c.Output, u.Hostname(), u.Path[:i])
+	filePath := dir + u.Path[i:]
 	if _, err := os.Stat(filePath); err == nil {
 		return os.Open(filePath)
 	}
 
-	resp, err := c.Client.Get(url.String())
+	resp, err := c.Downloader.Download(rawurl)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer resp.Close()
 
-	buf, err := ioutil.ReadAll(resp.Body)
+	buf, err := ioutil.ReadAll(resp)
 	if err != nil {
 		return nil, err
 	}
@@ -54,9 +62,8 @@ func (c Cache) Download(rawurl string) (io.ReadCloser, error) {
 		}
 	}
 
-	if err = ioutil.WriteFile(filePath, buf, 0700); err != nil {
+	if err := ioutil.WriteFile(filePath, buf, 0700); err != nil {
 		return nil, errors.WithStack(err)
 	}
-
 	return os.Open(filePath)
 }
