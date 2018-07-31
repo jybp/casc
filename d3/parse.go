@@ -104,87 +104,55 @@ func Parse() error {
 		return err
 	}
 
-	// Root file: need decoded hash first
-	// rootFileR, err := cache.Download(cdn.Url(casc.TypeData, cfg.RootHash, false))
-	// if err != nil {
-	// 	return err
-	// }
-	// defer cdnCfgR.Close()
-
-	// _, err = casc.ParseRoot(rootFileR)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// Look up Root hash
-	// TODO process is the same for all file to DL
-	// Get decoded hash of file, look up corresponding encodedHash in encoding table
-	// download and blte decode the content
-	decodedRootHashStr := cfg.RootHash
-	decodedRootHash := make([]byte, hex.DecodedLen(len(decodedRootHashStr)))
-	if _, err := hex.Decode(decodedRootHash, []byte(decodedRootHashStr)); err != nil {
-		return err
-	}
-
-	for _, e := range enc.EncCTable {
-
-		// a faster way would be to first look at e.Index.Hash which is the first content key of the table entries
-		for _, entry := range e.Entries {
-			if bytes.Compare(decodedRootHash, entry.Ckey) != 0 {
-				continue
-			}
-
-			if len(entry.Ekey) == 0 {
-				return fmt.Errorf("no encoding key for content key %x", entry.Ckey)
-			}
-
-			// pick encoded key at random, it doesnt matter
-			fmt.Printf("MATCH: %x : enc hash is %x\n", decodedRootHash, string(entry.Ekey[0]))
-
-			rootFile, err := cache.Download(cdn.Url(casc.TypeData, hex.EncodeToString(entry.Ekey[0]), false))
-			if err != nil {
-				return err
-			}
-			defer rootFile.Close()
-
-			decodedRootFile := bytes.NewBuffer([]byte{})
-			blte.Decode(rootFile, decodedRootFile)
-
-			fmt.Println(decodedRootFile)
-			return nil
-			//Todo blte encoded
-		}
-
-	}
-
-	return nil
-	fmt.Println("archives hashes: ", len(cdnCfg.ArchivesHashes))
-
-	// Archives Index
-	// map HeaderHash to ArchiveIndexChunk
-	archivesIdx := map[string]casc.ArchiveIndexEntry{}
-	for i, archiveHash := range cdnCfg.ArchivesHashes {
+	// Load all Archives Index
+	archivesIdxs := []casc.ArchiveIndexEntry{}
+	for _, archiveHash := range cdnCfg.ArchivesHashes {
 		idxR, err := cache.Download(cdn.Url(casc.TypeData, archiveHash, true))
 		if err != nil {
 			return err
 		}
 		defer idxR.Close()
-
 		idxs, err := casc.ParseArchiveIndex(idxR)
 		if err != nil {
 			return err
 		}
-
-		for j, idx := range idxs {
-			archivesIdx[string(idx.HeaderHash[:])] = idx
-
-			//TODO debug print
-			if i == 0 && j < 10 {
-				fmt.Println("archivesIdxEntry", idx)
-			}
-		}
-
+		archivesIdxs = append(archivesIdxs, idxs...)
 	}
+
+	rootHash := make([]byte, hex.DecodedLen(len(cfg.RootHash))) //TOOD this should be already done inside cfg parsing
+	if _, err := hex.Decode(rootHash, []byte(cfg.RootHash)); err != nil {
+		return err
+	}
+
+	rootEncodedHash, err := enc.FindEncodedHash(rootHash)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("decoded root hash: %x\n", rootEncodedHash)
+
+	rootArchiveIndex := casc.ArchiveIndexEntry{}
+	for _, arIdx := range archivesIdxs {
+		if bytes.Compare(rootEncodedHash, arIdx.HeaderHash[:]) == 0 {
+			rootArchiveIndex = arIdx
+			break
+		}
+	}
+
+	if rootArchiveIndex == (casc.ArchiveIndexEntry{}) {
+		return fmt.Errorf("root encoded hash %x not found in archive indices", rootEncodedHash)
+	}
+
+	fmt.Printf("archive index for root found: %x %+v\n", rootArchiveIndex.HeaderHash, rootArchiveIndex)
+
+	// rootFile, err := cache.Download(cdn.Url(casc.TypeData, hex.EncodeToString(entry.Ekey[0]), false))
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// defer rootFile.Close()
+
+	// decodedRootFile := bytes.NewBuffer([]byte{})
+	// blte.Decode(rootFile, decodedRootFile)
 
 	return nil
 }

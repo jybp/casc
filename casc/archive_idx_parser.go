@@ -6,10 +6,8 @@ import (
 	"io"
 )
 
-const arBlockSize uint32 = 1 << 20
-
 type ArchiveIndexEntry struct {
-	HeaderHash  [8]uint8
+	HeaderHash  [16]uint8 /*size is actually present in footer...*/
 	EncodedSize uint32
 	Offset      uint32
 }
@@ -18,8 +16,9 @@ type ArchiveIndexEntry struct {
 func ParseArchiveIndex(r io.Reader) ([]ArchiveIndexEntry, error) {
 	idxs := []ArchiveIndexEntry{}
 	for {
-		var chunk [4096]uint8
+		var chunk [1 << 12]uint8 /*fixed size*/
 		if err := binary.Read(r, binary.BigEndian, &chunk); err != nil {
+			/*TODO footer reached*/
 			if err == io.EOF || err == io.ErrUnexpectedEOF {
 				return idxs, nil
 			}
@@ -36,7 +35,8 @@ func ParseArchiveIndex(r io.Reader) ([]ArchiveIndexEntry, error) {
 				return nil, err
 			}
 
-			if idxEntry == (ArchiveIndexEntry{}) {
+			// zero padding reached
+			if idxEntry.HeaderHash == [16]uint8{} {
 				break
 			}
 			idxs = append(idxs, idxEntry)
