@@ -116,8 +116,6 @@ func Parse() error {
 	// 	return err
 	// }
 
-	// return nil
-
 	// Look up Root hash
 	// TODO process is the same for all file to DL
 	// Get decoded hash of file, look up corresponding encodedHash in encoding table
@@ -130,28 +128,20 @@ func Parse() error {
 
 	for _, e := range enc.EncCTable {
 
-		fmt.Printf("roothash: %s \t compared to: %s\n", decodedRootHashStr, hex.EncodeToString(e.Index.Hash))
+		// a faster way would be to first look at e.Index.Hash which is the first content key of the table entries
+		for _, entry := range e.Entries {
+			if bytes.Compare(decodedRootHash, entry.Ckey) != 0 {
+				continue
+			}
 
-		// for _, ekey := range e.Entry.Ekey {
-		// 	fmt.Printf("roothash: %s \t compared to ekey: %s\n", decodedRootHashStr, hex.EncodeToString(ekey))
-
-		// 	if bytes.Compare(decodedRootHash, ekey) == 0 {
-		// 		fmt.Printf("MATCH: %s : enc hash is %s\n", decodedRootHash, ekey)
-		// 		return nil
-		// 	}
-		// }
-
-		if bytes.Compare(decodedRootHash, e.Index.Hash) == 0 ||
-			bytes.Compare(decodedRootHash, e.Index.Checksum[:]) == 0 ||
-			bytes.Compare(decodedRootHash, e.Entry.Ckey) == 0 ||
-			bytes.Compare(decodedRootHash, e.Entry.Ekey[0]) == 0 {
+			if len(entry.Ekey) == 0 {
+				return fmt.Errorf("no encoding key for content key %x", entry.Ckey)
+			}
 
 			// pick encoded key at random, it doesnt matter
-			encodedHash := string(e.Entry.Ekey[0])
+			fmt.Printf("MATCH: %x : enc hash is %x\n", decodedRootHash, string(entry.Ekey[0]))
 
-			fmt.Printf("MATCH: %s : enc hash is %s\n", decodedRootHash, encodedHash)
-
-			rootFile, err := cache.Download(cdn.Url(casc.TypeData, encodedHash, false))
+			rootFile, err := cache.Download(cdn.Url(casc.TypeData, hex.EncodeToString(entry.Ekey[0]), false))
 			if err != nil {
 				return err
 			}
@@ -164,8 +154,8 @@ func Parse() error {
 			return nil
 			//Todo blte encoded
 		}
+
 	}
-	fmt.Printf("looking for decoded roohHash %s in %d entries", decodedRootHash, len(enc.EncCTable))
 
 	return nil
 	fmt.Println("archives hashes: ", len(cdnCfg.ArchivesHashes))

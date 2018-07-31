@@ -42,8 +42,8 @@ type encFileHeader struct {
 }
 
 type encCTableEntry struct {
-	Index encPageIndex
-	Entry encCPageEntry
+	Index   encPageIndex
+	Entries []encCPageEntry
 }
 
 type Encoding struct {
@@ -80,9 +80,11 @@ func ParseEncoding(r io.Reader) (Encoding, error) {
 		cPageIndices = append(cPageIndices, idx)
 	}
 
+	fmt.Println(len(cPageIndices))
+
 	encoding := Encoding{}
 	for _, idx := range cPageIndices {
-		CTableData := make([]byte, h.CPageSize*1024)
+		CTableData := make([]byte, int(h.CPageSize)*1024)
 		if err := binary.Read(r, binary.BigEndian, &CTableData); err != nil {
 			return Encoding{}, err
 		}
@@ -91,30 +93,43 @@ func ParseEncoding(r io.Reader) (Encoding, error) {
 			return Encoding{}, errors.New("encoding file invalid checksum")
 		}
 
+		entries := []encCPageEntry{}
 		CTableDataBuf := bytes.NewBuffer(CTableData)
-		cEntry := encCPageEntry{}
-		if err := binary.Read(CTableDataBuf, binary.LittleEndian, &cEntry.KeyCount); err != nil {
-			return Encoding{}, err
-		}
 
-		if err := binary.Read(CTableDataBuf, binary.BigEndian, &cEntry.FileSize); err != nil {
-			return Encoding{}, err
-		}
-
-		cEntry.Ckey = make([]uint8, h.CHashSize)
-		if err := binary.Read(CTableDataBuf, binary.BigEndian, &cEntry.Ckey); err != nil {
-			return Encoding{}, err
-		}
-
-		for i := uint16(0); i < cEntry.KeyCount; i++ {
-			ekey := make([]uint8, h.EHashSize)
-			if err := binary.Read(CTableDataBuf, binary.BigEndian, &ekey); err != nil {
+		for i := uint32(0); ; /*until EOF or until padding (cEntry.KeyCount == 0)*/ i++ {
+			cEntry := encCPageEntry{}
+			if err := binary.Read(CTableDataBuf, binary.LittleEndian, &cEntry.KeyCount); err != nil {
+				// Not sure this check is actually needed. Never encountered a table that is perfectly filled yet. Always hit a zero padding beforehand
+				// if err == io.EOF{
+				// 	break
+				// }
 				return Encoding{}, err
 			}
-			cEntry.Ekey = append(cEntry.Ekey, ekey)
-		}
 
-		encoding.EncCTable = append(encoding.EncCTable, encCTableEntry{Index: idx, Entry: cEntry})
+			if cEntry.KeyCount == 0 {
+				//a page is zero padded once entries have filled it
+				break
+			}
+
+			if err := binary.Read(CTableDataBuf, binary.BigEndian, &cEntry.FileSize); err != nil {
+				return Encoding{}, err
+			}
+
+			cEntry.Ckey = make([]uint8, h.CHashSize)
+			if err := binary.Read(CTableDataBuf, binary.BigEndian, &cEntry.Ckey); err != nil {
+				return Encoding{}, err
+			}
+
+			for i := uint16(0); i < cEntry.KeyCount; i++ {
+				ekey := make([]uint8, h.EHashSize)
+				if err := binary.Read(CTableDataBuf, binary.BigEndian, &ekey); err != nil {
+					return Encoding{}, err
+				}
+				cEntry.Ekey = append(cEntry.Ekey, ekey)
+			}
+			entries = append(entries, cEntry)
+		}
+		encoding.EncCTable = append(encoding.EncCTable, encCTableEntry{Index: idx, Entries: entries})
 	}
 
 	//EKeySpecPageTable is next
