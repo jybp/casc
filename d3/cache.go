@@ -1,6 +1,8 @@
 package d3
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -13,61 +15,88 @@ import (
 	"github.com/pkg/errors"
 )
 
-type Downloader struct {
-	Client *http.Client
+// Getter is the interface that wraps the Get method.
+// Get should retrieve the file associated with rawurl.
+type Getter interface {
+	Get(ctx context.Context, rawurl string) (io.ReadSeeker, error)
 }
 
-func (d Downloader) Download(rawurl string) (io.ReadCloser, error) {
-	if d.Client == nil {
-		d.Client = http.DefaultClient
-	}
-	resp, err := d.Client.Get(rawurl)
+// HTTPGetter is a simple wrapper that makes http.Client implement Getter.
+type HTTPGetter struct{ *http.Client }
+
+// Get downloads the file located at rawurl.
+func (g *HTTPGetter) Get(ctx context.Context, rawurl string) (io.ReadSeeker, error) {
+	resp, err := g.Client.Get(rawurl)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("download %s failed (%d)", rawurl, resp.StatusCode)
+		return nil, errors.WithStack(fmt.Errorf("download %s failed (%d)", rawurl, resp.StatusCode))
 	}
-	return resp.Body, nil
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return bytes.NewReader(b), nil
 }
 
-type Cache struct {
-	Downloader Downloader
-	Output     string
+// FileCache uses the filesystem as a cache and implements Getter.
+type FileCache struct {
+	Getter   Getter
+	CacheDir string
 }
 
-func (c Cache) Download(rawurl string) (io.ReadCloser, error) {
-	u, err := url.Parse(rawurl)
+// Get tries to retrieve the file associated with rawurl inside the filesystem.
+// If unsuccessful, it uses Getter to retrieve the file and writes it to the filesystem.
+func (c FileCache) Get(ctx context.Context, rawurl string) (io.ReadSeeker, error) {
+
+	// Always download the versions
+	// if rawurl[len(rawurl)-9:] == "/versions" {
+	// 	return c.Getter.Get(ctx, rawurl)
+	// }
+
+	url, err := url.Parse(rawurl)
 	if err != nil {
 		return nil, err
 	}
 
-	i := strings.LastIndex(u.Path, "/")
-	dir := path.Join(c.Output, u.Hostname(), u.Path[:i])
-	filePath := dir + u.Path[i:]
+	loadFileFn := func(filepath string) (io.ReadSeeker, error) {
+		f, err := os.Open(filepath)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		defer f.Close()
+		b, err := ioutil.ReadFile(filepath)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		return bytes.NewReader(b), nil
+	}
+
+	i := strings.LastIndex(url.Path, "/")
+	dir := path.Join(c.CacheDir, url.Hostname(), url.Path[:i])
+	filePath := dir + url.Path[i:]
 	if _, err := os.Stat(filePath); err == nil {
-		return os.Open(filePath)
+		return loadFileFn(filePath)
 	}
 
-	resp, err := c.Downloader.Download(rawurl)
+	fmt.Printf("downloading uncached file %s\n", rawurl)
+	resp, err := c.Getter.Get(ctx, rawurl)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
-	defer resp.Close()
-
 	buf, err := ioutil.ReadAll(resp)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
-
 	if _, err := os.Stat(dir); err != nil {
 		if err := os.MkdirAll(dir, 0700); err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 	}
-
 	if err := ioutil.WriteFile(filePath, buf, 0700); err != nil {
 		return nil, errors.WithStack(err)
 	}
-	return os.Open(filePath)
+	return loadFileFn(filePath)
 }

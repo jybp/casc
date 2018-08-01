@@ -25,7 +25,7 @@ type encCPageEntry struct {
 
 type encPageIndex struct {
 	Hash     []uint8 /*XHashSize*/
-	Checksum [16]uint8
+	Checksum [0x10]uint8
 }
 
 type encFileHeader struct {
@@ -76,8 +76,6 @@ func ParseEncoding(r io.Reader) (Encoding, error) {
 		return Encoding{}, err
 	}
 
-	fmt.Println("header", h)
-
 	if h.Signature != 0x454e /*EN*/ {
 		return Encoding{}, errors.New("invalid encoding header")
 	}
@@ -98,8 +96,6 @@ func ParseEncoding(r io.Reader) (Encoding, error) {
 		}
 		cPageIndices = append(cPageIndices, idx)
 	}
-
-	fmt.Println(len(cPageIndices))
 
 	encoding := Encoding{}
 	for _, idx := range cPageIndices {

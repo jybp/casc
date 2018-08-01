@@ -2,9 +2,13 @@ package d3
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
 	"strconv"
 
 	"github.com/jybp/go-d3-auto-parser/blte"
@@ -12,18 +16,16 @@ import (
 	"github.com/jybp/go-d3-auto-parser/casc"
 )
 
-func Parse() error {
-
+func Parse(app string) error {
+	ctx := context.Background()
 	hostURL := casc.HostURL(casc.RegionUS)
-	app := "d3"
 
 	// Download and check version to set cache folder
-	dl := Downloader{}
-	verR, err := dl.Download(casc.VersionsURL(hostURL, app))
+	httpGetter := HTTPGetter{http.DefaultClient}
+	verR, err := httpGetter.Get(ctx, casc.VersionsURL(hostURL, app))
 	if err != nil {
 		return err
 	}
-	defer verR.Close()
 
 	vers, err := casc.ParseVersions(verR)
 	if err != nil {
@@ -35,21 +37,19 @@ func Parse() error {
 		return errors.New("ver region not found")
 	}
 
-	cache := Cache{Downloader: dl, Output: "cache/" + app + "_" + strconv.Itoa(ver.ID)}
+	cache := FileCache{Getter: &httpGetter, CacheDir: "cache/" + app + "/" + strconv.Itoa(ver.ID)}
 
 	// Download version file locally
-	verRcache, err := cache.Download(casc.VersionsURL(hostURL, app))
-	if err != nil {
-		return err
-	}
-	defer verRcache.Close()
+	// verRcache, err := cache.Get(ctx, casc.VersionsURL(hostURL, app))
+	// if err != nil {
+	// 	return err
+	// }
 
 	// CDN urls
-	cdnR, err := cache.Download(casc.CdnsURL(hostURL, app))
+	cdnR, err := cache.Get(ctx, casc.CdnsURL(hostURL, app))
 	if err != nil {
 		return err
 	}
-	defer cdnR.Close()
 
 	cdns, err := casc.ParseCdn(cdnR)
 	if err != nil {
@@ -62,11 +62,10 @@ func Parse() error {
 	}
 
 	// Build Config
-	cfgR, err := cache.Download(cdn.Url(casc.TypeConfig, ver.BuildHash, false))
+	cfgR, err := cache.Get(ctx, cdn.Url(casc.TypeConfig, ver.BuildHash, false))
 	if err != nil {
 		return err
 	}
-	defer cfgR.Close()
 
 	cfg, err := casc.ParseBuildConfig(cfgR)
 	if err != nil {
@@ -74,11 +73,10 @@ func Parse() error {
 	}
 
 	// Encoding File
-	encR, err := cache.Download(cdn.Url(casc.TypeData, cfg.EncodingHash[1], false))
+	encR, err := cache.Get(ctx, cdn.Url(casc.TypeData, cfg.EncodingHash[1], false))
 	if err != nil {
 		return err
 	}
-	defer encR.Close()
 
 	encRdec := bytes.NewBuffer([]byte{})
 	if err := blte.Decode(encR, encRdec); err != nil {
@@ -93,11 +91,10 @@ func Parse() error {
 	fmt.Println("encTable: ", len(enc.EncCTable))
 
 	// CDN Config
-	cdnCfgR, err := cache.Download(cdn.Url(casc.TypeConfig, ver.CDNHash, false))
+	cdnCfgR, err := cache.Get(ctx, cdn.Url(casc.TypeConfig, ver.CDNHash, false))
 	if err != nil {
 		return err
 	}
-	defer cdnCfgR.Close()
 
 	cdnCfg, err := casc.ParseCdnConfig(cdnCfgR)
 	if err != nil {
@@ -105,54 +102,115 @@ func Parse() error {
 	}
 
 	// Load all Archives Index
-	archivesIdxs := []casc.ArchiveIndexEntry{}
+	fmt.Printf("loading archive indices (%d)\n", len(cdnCfg.ArchivesHashes))
+	// map of archive hash => archive indices
+	archivesIdxs := map[string][]casc.ArchiveIndexEntry{}
 	for _, archiveHash := range cdnCfg.ArchivesHashes {
-		idxR, err := cache.Download(cdn.Url(casc.TypeData, archiveHash, true))
+		idxR, err := cache.Get(ctx, cdn.Url(casc.TypeData, archiveHash, true))
 		if err != nil {
 			return err
 		}
-		defer idxR.Close()
 		idxs, err := casc.ParseArchiveIndex(idxR)
+
 		if err != nil {
 			return err
 		}
-		archivesIdxs = append(archivesIdxs, idxs...)
+		archivesIdxs[archiveHash] = append(archivesIdxs[archiveHash], idxs...)
 	}
 
-	rootHash := make([]byte, hex.DecodedLen(len(cfg.RootHash))) //TOOD this should be already done inside cfg parsing
+	//TOOD this should be already done inside cfg parsing?
+	rootHash := make([]byte, hex.DecodedLen(len(cfg.RootHash)))
 	if _, err := hex.Decode(rootHash, []byte(cfg.RootHash)); err != nil {
 		return err
 	}
 
-	rootEncodedHash, err := enc.FindEncodedHash(rootHash)
+	rootB, err := LoadFromContentHash(ctx, cache, cdn, rootHash, enc, archivesIdxs)
 	if err != nil {
 		return err
 	}
+	d3root, err := casc.ParseD3Root(bytes.NewReader(rootB))
+	if err != nil {
+		return err
+	}
+	for _, entry := range d3root.NamedEntries {
+		fmt.Printf("getting \"%s\" with hash %x\n", entry.Filename, entry.ContentKey)
 
-	fmt.Printf("decoded root hash: %x\n", rootEncodedHash)
+		file, err := LoadFromContentHash(ctx, cache, cdn, entry.ContentKey[:], enc, archivesIdxs)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("%s len is: %d\n", entry.Filename, len(file))
+	}
 
-	rootArchiveIndex := casc.ArchiveIndexEntry{}
-	for _, arIdx := range archivesIdxs {
-		if bytes.Compare(rootEncodedHash, arIdx.HeaderHash[:]) == 0 {
-			rootArchiveIndex = arIdx
-			break
+	return nil
+}
+
+func LoadFromContentHash(
+	ctx context.Context,
+	getter Getter,
+	cdn casc.Cdn,
+	contentHash []byte,
+	enc casc.Encoding,
+	archivesIdxs map[string][]casc.ArchiveIndexEntry) ([]byte, error) {
+
+	encodedHash, err := enc.FindEncodedHash(contentHash)
+	if err != nil {
+		return nil, err
+	}
+
+	archiveInfo := struct {
+		ArchiveHash string
+		Index       casc.ArchiveIndexEntry
+	}{}
+	for archiveHash, indices := range archivesIdxs {
+		for _, idx := range indices {
+
+			//TODO emove useless check
+			if len(encodedHash) != len(idx.HeaderHash[:]) {
+				return nil, fmt.Errorf("inconsistent hash len %d and %d", len(encodedHash), len(idx.HeaderHash[:]))
+			}
+
+			if bytes.Compare(encodedHash, idx.HeaderHash[:]) == 0 {
+				archiveInfo = struct {
+					ArchiveHash string
+					Index       casc.ArchiveIndexEntry
+				}{archiveHash, idx}
+				break
+			}
 		}
 	}
 
-	if rootArchiveIndex == (casc.ArchiveIndexEntry{}) {
-		return fmt.Errorf("root encoded hash %x not found in archive indices", rootEncodedHash)
+	if archiveInfo.ArchiveHash == "" || archiveInfo.Index == (casc.ArchiveIndexEntry{}) {
+		// encodedHash was not found inside archive indices, try to download the whole file
+		r, err := getter.Get(ctx, cdn.Url(casc.TypeData, fmt.Sprintf("%x", encodedHash), false))
+		if err != nil {
+			return nil, err
+		}
+		return ioutil.ReadAll(r)
 	}
 
-	fmt.Printf("archive index for root found: %x %+v\n", rootArchiveIndex.HeaderHash, rootArchiveIndex)
-
-	// rootFile, err := cache.Download(cdn.Url(casc.TypeData, hex.EncodeToString(entry.Ekey[0]), false))
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// defer rootFile.Close()
-
-	// decodedRootFile := bytes.NewBuffer([]byte{})
-	// blte.Decode(rootFile, decodedRootFile)
-
-	return nil
+	// TODO should only download relevant part of the archive using
+	// http header Content-Range bytes start-end/total:
+	//  1. check file exist
+	//  2. check file size is >= offset+size
+	//  3. check the content of file offset-size is not just 0 padded
+	//
+	//  To store downloaded content-range open the file and write
+	//  the content to the correct offset.
+	archive, err := getter.Get(ctx, cdn.Url(casc.TypeData, archiveInfo.ArchiveHash, false))
+	if err != nil {
+		return nil, err
+	}
+	if _, err := archive.Seek(int64(archiveInfo.Index.Offset), 0); err != nil {
+		return nil, err
+	}
+	encRootFile := make([]byte, archiveInfo.Index.EncodedSize)
+	if _, err := io.ReadFull(archive, encRootFile); err != nil {
+		return nil, err
+	}
+	rootFile := bytes.NewBuffer([]byte{})
+	if err := blte.Decode(bytes.NewBuffer(encRootFile), rootFile); err != nil {
+		return nil, err
+	}
+	return rootFile.Bytes(), nil
 }

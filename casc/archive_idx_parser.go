@@ -7,12 +7,13 @@ import (
 )
 
 type ArchiveIndexEntry struct {
-	HeaderHash  [16]uint8 /*size is actually present in footer...*/
-	EncodedSize uint32
-	Offset      uint32
+	HeaderHash  [0x10]uint8 /* first checksumSize bytes of the MD5 of the respective data. Size is actually to be found in the footer. */
+	EncodedSize uint32      /* encoding size of the respective data inside the archive */ /*todo byte size is actually in the footer*/
+	Offset      uint32      /* offset of the respective data inside the archive */        /*todo byte size is actually in the footer*/
 }
 
-//TODO simpler impl
+//TODO simpler imp
+//TODO all parser should accept io.ReaderSeeker so it can be parsed easily. (footer, ...)
 func ParseArchiveIndex(r io.Reader) ([]ArchiveIndexEntry, error) {
 	idxs := []ArchiveIndexEntry{}
 	for {
