@@ -1,4 +1,4 @@
-package casc
+package common
 
 import (
 	"errors"

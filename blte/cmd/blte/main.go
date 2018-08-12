@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/jybp/go-d3-auto-parser/blte"
+	"github.com/jybp/casc/blte"
 )
 
 func main() {

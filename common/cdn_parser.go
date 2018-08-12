@@ -1,4 +1,4 @@
-package casc
+package common
 
 import (
 	"bufio"
@@ -7,24 +7,9 @@ import (
 	"strings"
 )
 
-const (
-	//cdn path types
-	TypeConfig = "config"
-	TypeData   = "data"
-	TypePath   = "patch"
-)
-
 type Cdn struct {
 	Path  string
 	Hosts []string
-}
-
-func (cdn Cdn) Url(pathType, hash string, index bool) string {
-	url := "http://" + cdn.Hosts[0] + "/" + cdn.Path + "/" + pathType + "/" + string(hash[0:2]) + "/" + string(hash[2:4]) + "/" + hash
-	if !index {
-		return url
-	}
-	return url + ".index"
 }
 
 func ParseCdn(r io.Reader) (map[string]Cdn, error) {
