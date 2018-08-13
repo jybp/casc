@@ -74,6 +74,8 @@ func (s *Storage) setupExtractor() error {
 		return errors.New("expected 3 build encoding hashes")
 	}
 
+	fmt.Println("encoding:", buildCfg.EncodingHash[1])
+
 	// Encoding File
 	encodingR, err := s.downloader().Get(common.Url(cdn.Hosts[0], cdn.Path, common.PathTypeData, buildCfg.EncodingHash[1], false))
 	if err != nil {
