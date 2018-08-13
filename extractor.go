@@ -23,7 +23,7 @@ type extractor struct {
 	archivesIdxs map[string][]common.ArchiveIndexEntry
 }
 
-// newExtractor is not trivial and makes use of downloader
+// newExtractor makes use of downloader
 func newExtractor(downloader Downloader, app, region string) (*extractor, error) {
 	versionsR, err := downloader.Get(common.NGDPVersionsURL(app, region))
 	if err != nil {
@@ -59,7 +59,11 @@ func newExtractor(downloader Downloader, app, region string) (*extractor, error)
 	}
 
 	// Build Config
-	buildCfgR, err := downloader.Get(common.Url(cdn.Hosts[0], cdn.Path, common.PathTypeConfig, hex.EncodeToString(version.BuildHash), false))
+	buildCfgR, err := downloader.Get(common.Url(cdn.Hosts[0],
+		cdn.Path,
+		common.PathTypeConfig,
+		hex.EncodeToString(version.BuildHash),
+		false))
 	if err != nil {
 		return nil, err
 	}
@@ -70,13 +74,16 @@ func newExtractor(downloader Downloader, app, region string) (*extractor, error)
 	}
 
 	if len(buildCfg.EncodingHash) != 2 {
-		return nil, errors.New("expected 3 build encoding hashes")
+		return nil, errors.New("expected 2 encoding hashes inside the build config")
 	}
 
 	fmt.Println("encoding:", buildCfg.EncodingHash[1])
 
 	// Encoding File
-	encodingR, err := downloader.Get(common.Url(cdn.Hosts[0], cdn.Path, common.PathTypeData, buildCfg.EncodingHash[1], false))
+	encodingR, err := downloader.Get(common.Url(cdn.Hosts[0],
+		cdn.Path,
+		common.PathTypeData,
+		hex.EncodeToString(buildCfg.EncodingHash[1]), false))
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +99,11 @@ func newExtractor(downloader Downloader, app, region string) (*extractor, error)
 	}
 
 	// CDN Config
-	cdnCfgR, err := downloader.Get(common.Url(cdn.Hosts[0], cdn.Path, common.PathTypeConfig, hex.EncodeToString(version.CDNHash), false))
+	cdnCfgR, err := downloader.Get(common.Url(cdn.Hosts[0],
+		cdn.Path,
+		common.PathTypeConfig,
+		hex.EncodeToString(version.CDNHash),
+		false))
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +118,11 @@ func newExtractor(downloader Downloader, app, region string) (*extractor, error)
 	// map of archive hash => archive indices
 	archivesIdxs := map[string][]common.ArchiveIndexEntry{}
 	for _, archiveHash := range cdnCfg.ArchivesHashes {
-		idxR, err := downloader.Get(common.Url(cdn.Hosts[0], cdn.Path, common.PathTypeData, archiveHash, true))
+		idxR, err := downloader.Get(common.Url(cdn.Hosts[0],
+			cdn.Path,
+			common.PathTypeData,
+			hex.EncodeToString(archiveHash),
+			true))
 		if err != nil {
 			return nil, err
 		}
@@ -115,7 +130,7 @@ func newExtractor(downloader Downloader, app, region string) (*extractor, error)
 		if err != nil {
 			return nil, err
 		}
-		archivesIdxs[archiveHash] = append(archivesIdxs[archiveHash], idxs...)
+		archivesIdxs[hex.EncodeToString(archiveHash)] = append(archivesIdxs[hex.EncodeToString(archiveHash)], idxs...)
 	}
 
 	return &extractor{
@@ -155,7 +170,11 @@ func (s *extractor) extract(contentHash []byte) ([]byte, error) {
 
 	if archiveInfo.ArchiveHash == "" || archiveInfo.Index == (common.ArchiveIndexEntry{}) {
 		// encodedHash was not found inside archive indices, try to download the whole file
-		r, err := s.downloader.Get(common.Url(s.cdn.Hosts[0], s.cdn.Path, common.PathTypeData, fmt.Sprintf("%x", encodedHash), false))
+		r, err := s.downloader.Get(common.Url(s.cdn.Hosts[0],
+			s.cdn.Path,
+			common.PathTypeData,
+			hex.EncodeToString(encodedHash),
+			false))
 		if err != nil {
 			return nil, err
 		}
@@ -172,7 +191,11 @@ func (s *extractor) extract(contentHash []byte) ([]byte, error) {
 	//  To store downloaded content-range open the file and write
 	//  the content to the correct offset.
 
-	archive, err := s.downloader.Get(common.Url(s.cdn.Hosts[0], s.cdn.Path, common.PathTypeData, archiveInfo.ArchiveHash, false))
+	archive, err := s.downloader.Get(common.Url(s.cdn.Hosts[0],
+		s.cdn.Path,
+		common.PathTypeData,
+		archiveInfo.ArchiveHash,
+		false))
 	if err != nil {
 		return nil, err
 	}

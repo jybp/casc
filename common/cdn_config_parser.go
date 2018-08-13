@@ -1,29 +1,22 @@
 package common
 
 import (
-	"errors"
 	"fmt"
 	"io"
-	"strings"
 )
 
 type CdnConfig struct {
-	ArchivesHashes []string
+	ArchivesHashes [][]byte
 }
 
 func ParseCdnConfig(r io.Reader) (CdnConfig, error) {
-	p := parseConfig(r)
-	cfg := CdnConfig{}
-
-	v, ok := p["archives"]
-	if !ok {
-		return cfg, errors.New("'archives' not found in config")
+	cdnCfg := parseConfig(r)
+	archivesHashes, err := configToHashes(cdnCfg, "archives")
+	if err != nil {
+		return CdnConfig{}, err
 	}
-	s := strings.Split(v, " ")
-	if len(s) == 0 {
-		return CdnConfig{}, fmt.Errorf("invalid 'archives' in config")
+	if len(archivesHashes) == 0 {
+		return CdnConfig{}, fmt.Errorf("no archives hashes found in cdn config")
 	}
-	cfg.ArchivesHashes = s
-
-	return cfg, nil
+	return CdnConfig{archivesHashes}, nil
 }
