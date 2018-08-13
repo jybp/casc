@@ -1,10 +1,31 @@
 package casc
 
 import (
+	"encoding/hex"
+	"errors"
 	"io"
 
-	"github.com/jybp/casc/common"
 	"github.com/jybp/casc/downloader"
+	"github.com/jybp/casc/root/diablo3"
+)
+
+const (
+	RegionUS = "us"
+	RegionEU = "eu"
+	RegionKR = "kr"
+	RegionTW = "tw"
+	RegionCN = "cn"
+)
+
+const (
+	Diablo3 = "d3"
+	// WorldOfWarcraft  = "wow"
+	// HeroesOfTheStorm = "hero"
+	// Hearthstone      = "hsb"
+	// Overwatch        = "pro"
+	// Starcraft1       = "s1"
+	// Starcraft2       = "s2"
+	// Warcraft3        = "w3"
 )
 
 // Downloader is the interface that wraps the Get method.
@@ -24,10 +45,7 @@ type Storage struct {
 	Region     string
 	Downloader Downloader
 
-	version common.Version
-	build   common.BuildConfig
-
-	extractor extractor
+	extractor *extractor
 	root      root
 }
 
@@ -54,10 +72,10 @@ func (s *Storage) downloader() Downloader {
 
 // Version returns the version of s.App on s.Region.
 func (s *Storage) Version() (string, error) {
-	if err := s.setupVersion(); err != nil {
+	if err := s.setupExtractor(); err != nil {
 		return "", err
 	}
-	return s.version.Name, nil
+	return s.extractor.version.Name, nil
 }
 
 // Files enumerates all files
@@ -70,7 +88,7 @@ func (s *Storage) Files() ([]string, error) {
 
 // Extract extracts the file with the filename name
 func (s *Storage) Extract(filename string) ([]byte, error) {
-	if err := s.setupExtractor(); err != nil {
+	if err := s.setupRoot(); err != nil {
 		return nil, err
 	}
 	contentHash, err := s.root.ContentHash(filename)
@@ -78,4 +96,38 @@ func (s *Storage) Extract(filename string) ([]byte, error) {
 		return nil, err
 	}
 	return s.extractor.extract(contentHash)
+}
+
+// initialize s.extractor
+func (s *Storage) setupExtractor() error {
+	if s.extractor != nil {
+		return nil
+	}
+	extractor, err := newExtractor(s.downloader(), s.app(), s.region())
+	if err != nil {
+		return err
+	}
+	s.extractor = extractor
+	return nil
+}
+
+// initialize s.root
+func (s *Storage) setupRoot() error {
+	if s.root != nil {
+		return nil
+	}
+	if err := s.setupExtractor(); err != nil {
+		return err
+	}
+	rootHash := make([]byte, hex.DecodedLen(len(s.extractor.build.RootHash)))
+	if _, err := hex.Decode(rootHash, []byte(s.extractor.build.RootHash)); err != nil {
+		return err
+	}
+	switch s.App {
+	case Diablo3:
+		s.root = &diablo3.Root{RootHash: rootHash, Extract: s.extractor.extract}
+	default:
+		return errors.New("unsupported app")
+	}
+	return nil
 }
