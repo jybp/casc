@@ -2,28 +2,26 @@ package common
 
 import (
 	"bytes"
+	"reflect"
 	"testing"
 )
 
 func TestParseVersion(t *testing.T) {
 	data := bytes.NewBufferString(`Region!STRING:0|BuildConfig!HEX:16|CDNConfig!HEX:16|KeyRing!HEX:16|BuildId!DEC:4|VersionsName!String:0|ProductConfig!HEX:16
 ## seqn = 11111
-us|a|b||1|1.1.1.11111|c
-eu|d|e||2|2.1.1.11111|f
-kr|g|h||3|3.1.1.11111|i
-tw|j|k||4|4.1.1.11111|l
+us|6a9e9d6b2a070a4c6a3b777beeb2b7c0|351c5adcdda3a2553ed1aa3ae5332a38||1|1.1.1.11111|c
+eu|66d0476334023bb1eaa241424f9ad178|07b668246e2cb87bfc6aa7a4a825a348||2|2.1.1.11111|f
 `)
 
 	expected := map[string]Version{
-		"us": Version{BuildHash: "a", CDNHash: "b", ID: 1, Name: "1.1.1.11111"},
-		"eu": Version{BuildHash: "d", CDNHash: "e", ID: 2, Name: "2.1.1.11111"},
-		"kr": Version{BuildHash: "g", CDNHash: "h", ID: 3, Name: "3.1.1.11111"},
-		"tw": Version{BuildHash: "j", CDNHash: "k", ID: 4, Name: "4.1.1.11111"},
+		"us": Version{BuildHash: []byte("6a9e9d6b2a070a4c6a3b777beeb2b7c0"), CDNHash: []byte("351c5adcdda3a2553ed1aa3ae5332a38"), ID: 1, Name: "1.1.1.11111"},
+		"eu": Version{BuildHash: []byte("66d0476334023bb1eaa241424f9ad178"), CDNHash: []byte("07b668246e2cb87bfc6aa7a4a825a348"), ID: 2, Name: "2.1.1.11111"},
 	}
 
 	vers, err := ParseVersions(data)
 	if err != nil {
 		t.Error(err)
+		return
 	}
 
 	for expectedK, expectedVer := range expected {
@@ -32,7 +30,7 @@ tw|j|k||4|4.1.1.11111|l
 			t.Errorf("%s region not found", expectedK)
 		}
 
-		if expectedVer != ver {
+		if reflect.DeepEqual(expectedVer, ver) {
 			t.Errorf("version mismatch %+v %+v", expectedVer, ver)
 		}
 	}

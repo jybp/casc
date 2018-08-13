@@ -2,6 +2,7 @@ package common
 
 import (
 	"bufio"
+	"encoding/hex"
 	"errors"
 	"io"
 	"strconv"
@@ -9,15 +10,15 @@ import (
 )
 
 type Version struct {
-	BuildHash string // build hash?
-	CDNHash   string // cdn hash?
-	ID        int    // last part of the displayed version name
-	Name      string // displayed version name: A.B.C.XXXXX
+	BuildHash []byte
+	CDNHash   []byte
+	Name      string // i.e. A.B.C.XXXXX
+	ID        int    // last part of Version.Name
 }
 
+// ParseVersions returns a map of region:version
 func ParseVersions(r io.Reader) (map[string]Version, error) {
 	vers := map[string]Version{}
-
 	scanner := bufio.NewScanner(r)
 	n := 0
 	for scanner.Scan() {
@@ -39,9 +40,18 @@ func ParseVersions(r io.Reader) (map[string]Version, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		buildHash, err := hex.DecodeString(split[1])
+		if err != nil {
+			return nil, err
+		}
+		cdnHash, err := hex.DecodeString(split[2])
+		if err != nil {
+			return nil, err
+		}
 		vers[split[0]] = Version{
-			BuildHash: split[1],
-			CDNHash:   split[2],
+			BuildHash: buildHash,
+			CDNHash:   cdnHash,
 			ID:        id,
 			Name:      split[5],
 		}

@@ -2,6 +2,7 @@ package casc
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -13,7 +14,8 @@ import (
 
 // extractor allows to retrieve a file from a content hash
 type extractor struct {
-	downloader   Downloader
+	downloader Downloader
+
 	version      common.Version
 	build        common.BuildConfig
 	cdn          common.Cdn
@@ -57,7 +59,7 @@ func newExtractor(downloader Downloader, app, region string) (*extractor, error)
 	}
 
 	// Build Config
-	buildCfgR, err := downloader.Get(common.Url(cdn.Hosts[0], cdn.Path, common.PathTypeConfig, version.BuildHash, false))
+	buildCfgR, err := downloader.Get(common.Url(cdn.Hosts[0], cdn.Path, common.PathTypeConfig, hex.EncodeToString(version.BuildHash), false))
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +92,7 @@ func newExtractor(downloader Downloader, app, region string) (*extractor, error)
 	}
 
 	// CDN Config
-	cdnCfgR, err := downloader.Get(common.Url(cdn.Hosts[0], cdn.Path, common.PathTypeConfig, version.CDNHash, false))
+	cdnCfgR, err := downloader.Get(common.Url(cdn.Hosts[0], cdn.Path, common.PathTypeConfig, hex.EncodeToString(version.CDNHash), false))
 	if err != nil {
 		return nil, err
 	}
@@ -169,10 +171,14 @@ func (s *extractor) extract(contentHash []byte) ([]byte, error) {
 	//
 	//  To store downloaded content-range open the file and write
 	//  the content to the correct offset.
+
 	archive, err := s.downloader.Get(common.Url(s.cdn.Hosts[0], s.cdn.Path, common.PathTypeData, archiveInfo.ArchiveHash, false))
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Printf("downloaded whole archive %x to get chunk at offset: %d and size: %d\n", archiveInfo.ArchiveHash, archiveInfo.Index.Offset, archiveInfo.Index.EncodedSize)
+
 	if _, err := archive.Seek(int64(archiveInfo.Index.Offset), 0); err != nil {
 		return nil, err
 	}
