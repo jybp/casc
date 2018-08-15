@@ -37,7 +37,8 @@ type Storage interface {
 	OpenVersions() (io.ReadSeeker, error)
 	OpenConfig(hash []byte) (io.ReadSeeker, error)
 	OpenIndex(hash []byte) (io.ReadSeeker, error)
-	OpenData(hash []byte) (io.ReadSeeker, error)
+	OpenData(hash []byte) (io.ReadSeeker, error) //change signature so not everything is loaded to memory
+	//OpenData(hash []byte, offset, size int) (io.ReadSeeker, error)
 }
 
 // Each app has its own way of relating file names to content hash.

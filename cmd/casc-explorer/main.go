@@ -1,7 +1,7 @@
 /*
 casc-explorer explore CASC files from the command-line.
 Usage:
-	casc-explorer (-dir <install-dir> | -app <app> [-region <region>] [-cdn <cdn>] [-cache <cache-dir>]) [-v]
+	casc-explorer (-dir <install-dir> | -app <app> -cache <cache-dir> [-region <region>] [-cdn <cdn>]) [-v]
 Examples
 	casc-explorer -app d3 -region eu -cdn eu
 	casc-explorer -dir /Applications/Diablo III/
@@ -32,16 +32,16 @@ func (t track) Get(key string) (responseBytes []byte, ok bool) {
 }
 
 func main() {
-	var installDir, app, region, cdn, cacheDir string
+	var installDir, app, cacheDir, region, cdn string
 	var verbose bool
 	flag.StringVar(&installDir, "dir", "", "game install directory")
 	flag.StringVar(&app, "app", "", "app code")
+	flag.StringVar(&cacheDir, "cache-dir", "cache", "cache directory")
 	flag.StringVar(&region, "region", casc.RegionUS, "app region code")
 	flag.StringVar(&cdn, "cdn", casc.RegionUS, "cdn region")
-	flag.StringVar(&cacheDir, "cache-dir", "cache", "cache directory")
 	flag.BoolVar(&verbose, "v", false, "verbose")
 	flag.Parse()
-	if (app == "") == (installDir == "") {
+	if ((app == "") == (installDir == "")) || (app != "" && cacheDir == "") {
 		flag.Usage()
 		return
 	}

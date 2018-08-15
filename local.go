@@ -83,6 +83,7 @@ func (l LocalStorage) OpenConfig(hash []byte) (io.ReadSeeker, error) {
 	return nil, errors.New("no implemented")
 }
 
+//TODO loading all file to memory is not efficient
 func (l LocalStorage) OpenData(hash []byte) (io.ReadSeeker, error) {
 	return nil, errors.New("no implemented")
 }

@@ -58,6 +58,7 @@ func (n NGDP) OpenConfig(hash []byte) (io.ReadSeeker, error) {
 	return get(n.client, n.url(common.PathTypeConfig, hash, false))
 }
 
+//TODO loading all the body to memory is not efficient
 func (n NGDP) OpenData(hash []byte) (io.ReadSeeker, error) {
 	return get(n.client, n.url(common.PathTypeData, hash, false))
 }
