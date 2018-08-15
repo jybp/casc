@@ -1,11 +1,10 @@
 package common
 
 import (
-	"bufio"
+	"bytes"
 	"encoding/hex"
+	"fmt"
 	"io"
-	"strconv"
-	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -14,51 +13,69 @@ type Version struct {
 	BuildConfigHash []byte
 	CDNConfigHash   []byte
 	Name            string // i.e. A.B.C.XXXXX
-	ID              int    // last part of Version.Name
 }
 
-// ParseVersions returns a map of region:version
+// ParseVersions tries to parse using ParseBuildInfo and ParseOnlineVersions
 func ParseVersions(r io.Reader) (map[string]Version, error) {
-	vers := map[string]Version{}
-	scanner := bufio.NewScanner(r)
-	n := 0
-	for scanner.Scan() {
-		n++
-		if n <= 2 { //TODO parse header
-			continue
-		}
-		line := scanner.Text()
-		if !strings.ContainsRune(line, '|') {
-			continue
-		}
-		split := strings.Split(line, "|")
-
-		if len(split) < 6 {
-			return nil, errors.WithStack(errors.New("unexpected number of |"))
-		}
-
-		id, err := strconv.Atoi(split[4])
+	var buf bytes.Buffer
+	tee := io.TeeReader(r, &buf)
+	versions, err := ParseBuildInfo(tee)
+	if err != nil {
+		versions, err = ParseOnlineVersions(&buf)
 		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-
-		buildHash, err := hex.DecodeString(split[1])
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		cdnHash, err := hex.DecodeString(split[2])
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		vers[split[0]] = Version{
-			BuildConfigHash: buildHash,
-			CDNConfigHash:   cdnHash,
-			ID:              id,
-			Name:            split[5],
-		}
-		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, err
 		}
 	}
-	return vers, nil
+	return versions, nil
+}
+
+// ParseBuildInfo parses the .build.info file
+func ParseBuildInfo(r io.Reader) (map[string]Version, error) {
+	return parseVersions(r, "Branch", "Build Key", "CDN Key", "Version")
+}
+
+// ParseOnlineVersions parses the file located at:
+// http://(Region).patch.battle.net:1119/(ProgramCode)/versions
+func ParseOnlineVersions(r io.Reader) (map[string]Version, error) {
+	return parseVersions(r, "Region", "BuildConfig", "CDNConfig", "VersionsName")
+}
+
+func parseVersions(r io.Reader, region, build, cdn, version string) (map[string]Version, error) {
+	csv, err := parseCSV(r)
+	if err != nil {
+		return nil, err
+	}
+	versions := map[string]Version{}
+	for _, row := range csv {
+		region, ok := row[region]
+		if !ok {
+			return nil, errors.WithStack(fmt.Errorf("invalid version: %+v", row))
+		}
+		builConfigStr, ok := row[build]
+		if !ok {
+			return nil, errors.WithStack(fmt.Errorf("invalid version: %+v", row))
+		}
+		builConfigHash, err := hex.DecodeString(builConfigStr)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		cdnConfigStr, ok := row[cdn]
+		if !ok {
+			return nil, errors.WithStack(fmt.Errorf("invalid version: %+v", row))
+		}
+		cdnConfigHash, err := hex.DecodeString(cdnConfigStr)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		versionName, ok := row[version]
+		if !ok {
+			return nil, errors.WithStack(fmt.Errorf("invalid version: %+v", row))
+		}
+		versions[region] = Version{
+			BuildConfigHash: builConfigHash,
+			CDNConfigHash:   cdnConfigHash,
+			Name:            versionName,
+		}
+	}
+	return versions, nil
 }

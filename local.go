@@ -1,17 +1,21 @@
 package casc
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path"
 
+	"github.com/jybp/casc/common"
 	"github.com/pkg/errors"
 )
 
 type LocalStorage struct {
-	app    string
-	region string
+	app        string
+	region     string
+	installDir string
 }
 
 func binaryExists(filename string) bool {
@@ -40,7 +44,23 @@ func newLocalStorage(installDir string) (*LocalStorage, error) {
 		return nil, err
 	}
 
-	return &LocalStorage{app, ""}, nil
+	//TODO fetching region is not efficient
+	b, err := ioutil.ReadFile(path.Join(installDir, ".build.info"))
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	versions, err := common.ParseVersions(bytes.NewReader(b))
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	if len(versions) != 1 {
+		return nil, errors.WithStack(errors.New("several regions within .build.info"))
+	}
+	var region string
+	for key := range versions {
+		region = key
+	}
+	return &LocalStorage{app, region, installDir}, nil
 }
 
 func (l LocalStorage) App() string {
@@ -52,7 +72,11 @@ func (l LocalStorage) Region() string {
 }
 
 func (l LocalStorage) OpenVersions() (io.ReadSeeker, error) {
-	return nil, errors.New("no implemented")
+	b, err := ioutil.ReadFile(path.Join(l.installDir, ".build.info"))
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return bytes.NewReader(b), nil
 }
 
 func (l LocalStorage) OpenConfig(hash []byte) (io.ReadSeeker, error) {

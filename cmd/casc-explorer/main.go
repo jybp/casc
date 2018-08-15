@@ -3,8 +3,8 @@ casc-explorer explore CASC files from the command-line.
 Usage:
 	casc-explorer (-dir <install-dir> | -app <app> [-region <region>] [-cdn <cdn>] [-cache <cache-dir>]) [-v]
 Examples
-	casc-explorer d3 -region eu -cdn eu
-	casc-explorer /Applications/Diablo III/
+	casc-explorer -app d3 -region eu -cdn eu
+	casc-explorer -dir /Applications/Diablo III/
 */
 package main
 
@@ -26,7 +26,7 @@ type track struct {
 func (t track) Get(key string) (responseBytes []byte, ok bool) {
 	b, ok := t.Cache.Get(key)
 	if !ok {
-		fmt.Printf("cache missed %s\n ", key)
+		fmt.Printf("cache missed: %s\n ", key)
 	}
 	return b, ok
 }
@@ -75,7 +75,7 @@ func main() {
 		}
 	}
 
-	fmt.Printf("%s (%s) files:\n", app, region)
+	fmt.Printf("%s - %s - %s:\n", app, region, explorer.Version())
 	filenames, err := explorer.Files()
 	if err != nil {
 		fmt.Printf("%+v\n", err)

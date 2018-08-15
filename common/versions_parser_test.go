@@ -14,8 +14,8 @@ eu|66d0476334023bb1eaa241424f9ad178|07b668246e2cb87bfc6aa7a4a825a348||2|2.1.1.11
 `)
 
 	expected := map[string]Version{
-		"us": Version{BuildConfigHash: []byte("6a9e9d6b2a070a4c6a3b777beeb2b7c0"), CDNConfigHash: []byte("351c5adcdda3a2553ed1aa3ae5332a38"), ID: 1, Name: "1.1.1.11111"},
-		"eu": Version{BuildConfigHash: []byte("66d0476334023bb1eaa241424f9ad178"), CDNConfigHash: []byte("07b668246e2cb87bfc6aa7a4a825a348"), ID: 2, Name: "2.1.1.11111"},
+		"us": Version{BuildConfigHash: []byte("6a9e9d6b2a070a4c6a3b777beeb2b7c0"), CDNConfigHash: []byte("351c5adcdda3a2553ed1aa3ae5332a38"), Name: "1.1.1.11111"},
+		"eu": Version{BuildConfigHash: []byte("66d0476334023bb1eaa241424f9ad178"), CDNConfigHash: []byte("07b668246e2cb87bfc6aa7a4a825a348"), Name: "2.1.1.11111"},
 	}
 
 	vers, err := ParseVersions(data)
