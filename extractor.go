@@ -39,9 +39,9 @@ func newExtractor(Storage Storage) (*extractor, error) {
 	if err != nil {
 		return nil, err
 	}
-	version, ok := versions[Storage.AppRegion()]
+	version, ok := versions[Storage.Region()]
 	if !ok {
-		return nil, fmt.Errorf("region %s not found", Storage.AppRegion())
+		return nil, fmt.Errorf("region %s not found", Storage.Region())
 	}
 
 	// Build Config

@@ -42,11 +42,11 @@ func newNGDP(app, region, cdnRegion string, client *http.Client) (*NGDP, error) 
 	return &NGDP{app, region, cdnRegion, client, cdn}, nil
 }
 
-func (n NGDP) AppCode() string {
+func (n NGDP) App() string {
 	return n.app
 }
 
-func (n NGDP) AppRegion() string {
+func (n NGDP) Region() string {
 	return n.region
 }
 

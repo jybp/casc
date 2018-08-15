@@ -1,11 +1,11 @@
 package casc
 
 import (
-	"errors"
 	"io"
 	"net/http"
 
 	"github.com/jybp/casc/root/diablo3"
+	"github.com/pkg/errors"
 )
 
 // Regions codes
@@ -31,8 +31,8 @@ const (
 
 // Storage descibes how to fetch CASC content.
 type Storage interface {
-	AppCode() string
-	AppRegion() string
+	App() string
+	Region() string
 
 	OpenVersions() (io.ReadSeeker, error)
 	OpenConfig(hash []byte) (io.ReadSeeker, error)
@@ -63,7 +63,11 @@ func NewOnlineExplorer(app, region, cdnRegion string, client *http.Client) (*Exp
 
 // NewLocalExplorer will use files located under installDir to fetch CASC files.
 func NewLocalExplorer(installDir string) (*Explorer, error) {
-	return nil, errors.New("not implemented")
+	local, err := newLocalStorage(installDir)
+	if err != nil {
+		return nil, err
+	}
+	return newExplorer(local)
 }
 
 func newExplorer(Storage Storage) (*Explorer, error) {
@@ -72,14 +76,14 @@ func newExplorer(Storage Storage) (*Explorer, error) {
 		return nil, err
 	}
 	var root root
-	switch Storage.AppCode() {
+	switch Storage.App() {
 	case Diablo3:
 		root, err = diablo3.NewRoot(extractor.build.RootHash, extractor.extract)
 		if err != nil {
 			return nil, err
 		}
 	default:
-		return nil, errors.New("unsupported app")
+		return nil, errors.WithStack(errors.New("unsupported app"))
 	}
 	return &Explorer{extractor, root}, nil
 }
