@@ -17,7 +17,7 @@ func NGDPCdnsURL(app, region string) string {
 const (
 	PathTypeConfig = "config"
 	PathTypeData   = "data"
-	PathTypePatch  = "patch"
+	//PathTypePatch  = "patch"
 )
 
 func Url(cdnHost, cdnPath string, pathType string, hash string, index bool) string {

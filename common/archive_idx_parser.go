@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"io"
+
+	"github.com/pkg/errors"
 )
 
 type ArchiveIndexEntry struct {
@@ -23,7 +25,7 @@ func ParseArchiveIndex(r io.Reader) ([]ArchiveIndexEntry, error) {
 			if err == io.EOF || err == io.ErrUnexpectedEOF {
 				return idxs, nil
 			}
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 
 		buf := bytes.NewBuffer(chunk[:])
@@ -33,7 +35,7 @@ func ParseArchiveIndex(r io.Reader) ([]ArchiveIndexEntry, error) {
 				if err == io.EOF || err == io.ErrUnexpectedEOF {
 					return idxs, nil
 				}
-				return nil, err
+				return nil, errors.WithStack(err)
 			}
 
 			// zero padding reached

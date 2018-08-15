@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"crypto/md5"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"io"
+
+	"github.com/pkg/errors"
 )
 
 type encEPageEntry struct {
@@ -60,28 +61,28 @@ func (e Encoding) FindEncodedHash(decodedHash []byte) (encodedHash []byte, err e
 				continue
 			}
 			if len(entry.Ekey) == 0 {
-				return nil, fmt.Errorf("no encoding key for content key %x", entry.Ckey)
+				return nil, errors.WithStack(fmt.Errorf("no encoding key for content key %x", entry.Ckey))
 			}
 			// return any encoded hash
 			return entry.Ekey[0], nil
 		}
 	}
-	return nil, fmt.Errorf("no encoded hash found for decoded hash %x", decodedHash)
+	return nil, errors.WithStack(fmt.Errorf("no encoded hash found for decoded hash %x", decodedHash))
 }
 
 //Warning: BLTE encoded
 func ParseEncoding(r io.Reader) (Encoding, error) {
 	h := &encFileHeader{}
 	if err := binary.Read(r, binary.BigEndian, h); err != nil {
-		return Encoding{}, err
+		return Encoding{}, errors.WithStack(err)
 	}
 
 	if h.Signature != 0x454e /*EN*/ {
-		return Encoding{}, errors.New("invalid encoding header")
+		return Encoding{}, errors.WithStack(errors.New("invalid encoding header"))
 	}
 
 	if _, err := io.ReadFull(r, make([]uint8, h.EspecBlockSize)); err != nil {
-		return Encoding{}, err
+		return Encoding{}, errors.WithStack(err)
 	}
 
 	var cPageIndices []encPageIndex
@@ -89,10 +90,10 @@ func ParseEncoding(r io.Reader) (Encoding, error) {
 		idx := encPageIndex{}
 		idx.Hash = make([]uint8, h.CHashSize)
 		if err := binary.Read(r, binary.BigEndian, &idx.Hash); err != nil {
-			return Encoding{}, err
+			return Encoding{}, errors.WithStack(err)
 		}
 		if err := binary.Read(r, binary.BigEndian, &idx.Checksum); err != nil {
-			return Encoding{}, err
+			return Encoding{}, errors.WithStack(err)
 		}
 		cPageIndices = append(cPageIndices, idx)
 	}
@@ -101,11 +102,11 @@ func ParseEncoding(r io.Reader) (Encoding, error) {
 	for _, idx := range cPageIndices {
 		CTableData := make([]byte, int(h.CPageSize)*1024)
 		if err := binary.Read(r, binary.BigEndian, &CTableData); err != nil {
-			return Encoding{}, err
+			return Encoding{}, errors.WithStack(err)
 		}
 
 		if hash := md5.Sum(CTableData); bytes.Compare(hash[:], idx.Checksum[:]) != 0 {
-			return Encoding{}, errors.New("encoding file invalid checksum")
+			return Encoding{}, errors.WithStack(errors.New("encoding file invalid checksum"))
 		}
 
 		entries := []encCPageEntry{}
@@ -118,7 +119,7 @@ func ParseEncoding(r io.Reader) (Encoding, error) {
 				// if err == io.EOF{
 				// 	break
 				// }
-				return Encoding{}, err
+				return Encoding{}, errors.WithStack(err)
 			}
 
 			if cEntry.KeyCount == 0 {
@@ -127,18 +128,18 @@ func ParseEncoding(r io.Reader) (Encoding, error) {
 			}
 
 			if err := binary.Read(CTableDataBuf, binary.BigEndian, &cEntry.FileSize); err != nil {
-				return Encoding{}, err
+				return Encoding{}, errors.WithStack(err)
 			}
 
 			cEntry.Ckey = make([]uint8, h.CHashSize)
 			if err := binary.Read(CTableDataBuf, binary.BigEndian, &cEntry.Ckey); err != nil {
-				return Encoding{}, err
+				return Encoding{}, errors.WithStack(err)
 			}
 
 			for i := uint16(0); i < cEntry.KeyCount; i++ {
 				ekey := make([]uint8, h.EHashSize)
 				if err := binary.Read(CTableDataBuf, binary.BigEndian, &ekey); err != nil {
-					return Encoding{}, err
+					return Encoding{}, errors.WithStack(err)
 				}
 				cEntry.Ekey = append(cEntry.Ekey, ekey)
 			}

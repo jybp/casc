@@ -1,13 +1,38 @@
 package diablo3
 
-import "bytes"
+import (
+	"bytes"
+	"fmt"
 
-func newRoot(rootHash []byte, extract func(contentHash []byte) ([]byte, error)) (*Root, error) {
-	rootB, err := extract(rootHash)
+	"github.com/pkg/errors"
+)
+
+type Root struct {
+	filenameToContentHash map[string][]byte
+}
+
+func (r *Root) Files() ([]string, error) {
+	var names []string
+	for name := range r.filenameToContentHash {
+		names = append(names, name)
+	}
+	return names, nil
+}
+
+func (r *Root) ContentHash(filename string) ([]byte, error) {
+	contentHash, ok := r.filenameToContentHash[filename]
+	if !ok {
+		return nil, errors.WithStack(fmt.Errorf("%s file name not found", filename))
+	}
+	return contentHash, nil
+}
+
+func NewRoot(hash []byte, extract func(contentHash []byte) ([]byte, error)) (*Root, error) {
+	b, err := extract(hash)
 	if err != nil {
 		return nil, err
 	}
-	d3root, err := parseD3RootFile(bytes.NewReader(rootB))
+	d3root, err := parseD3RootFile(bytes.NewReader(b))
 	if err != nil {
 		return nil, err
 	}

@@ -3,6 +3,8 @@ package common
 import (
 	"fmt"
 	"io"
+
+	"github.com/pkg/errors"
 )
 
 type CdnConfig struct {
@@ -16,7 +18,7 @@ func ParseCdnConfig(r io.Reader) (CdnConfig, error) {
 		return CdnConfig{}, err
 	}
 	if len(archivesHashes) == 0 {
-		return CdnConfig{}, fmt.Errorf("no archives hashes found in cdn config")
+		return CdnConfig{}, errors.WithStack(fmt.Errorf("no archives hashes found in cdn config"))
 	}
 	return CdnConfig{archivesHashes}, nil
 }

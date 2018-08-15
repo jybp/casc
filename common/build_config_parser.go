@@ -1,8 +1,9 @@
 package common
 
 import (
-	"errors"
 	"io"
+
+	"github.com/pkg/errors"
 )
 
 //Build config
@@ -18,7 +19,7 @@ func ParseBuildConfig(r io.Reader) (BuildConfig, error) {
 		return BuildConfig{}, err
 	}
 	if len(rootHashes) != 1 {
-		return BuildConfig{}, errors.New("build config doesn't contain exactly one root hash")
+		return BuildConfig{}, errors.WithStack(errors.New("build config doesn't contain exactly one root hash"))
 	}
 	encodingHashes, err := configToHashes(buildCfg, "encoding")
 	if err != nil {

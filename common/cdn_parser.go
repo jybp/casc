@@ -2,9 +2,10 @@ package common
 
 import (
 	"bufio"
-	"errors"
 	"io"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 type Cdn struct {
@@ -29,11 +30,11 @@ func ParseCdn(r io.Reader) (map[string]Cdn, error) {
 		split := strings.Split(line, "|")
 
 		if len(split) < 3 {
-			return nil, errors.New("unexpected number of |")
+			return nil, errors.WithStack(errors.New("unexpected number of |"))
 		}
 		hosts := strings.Split(split[2], " ")
 		if len(hosts) == 0 {
-			return nil, errors.New("unexpected host format")
+			return nil, errors.WithStack(errors.New("unexpected host format"))
 		}
 
 		cdns[split[0]] = Cdn{

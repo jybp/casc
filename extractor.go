@@ -2,30 +2,36 @@ package casc
 
 import (
 	"bytes"
-	"encoding/hex"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 
 	"github.com/jybp/casc/blte"
 	"github.com/jybp/casc/common"
+	"github.com/pkg/errors"
 )
 
-// extractor allows to retrieve a file from a content hash
-type extractor struct {
-	downloader Downloader
-
-	version      common.Version
-	build        common.BuildConfig
-	cdn          common.Cdn
-	encoding     common.Encoding
-	archivesIdxs map[string][]common.ArchiveIndexEntry
+// archiveIndex combines an index entry with the archive hash its referring to.
+type archiveIndex struct {
+	common.ArchiveIndexEntry
+	archiveHash []byte
 }
 
-// newExtractor makes use of downloader
-func newExtractor(downloader Downloader, app, region string) (*extractor, error) {
-	versionsR, err := downloader.Get(common.NGDPVersionsURL(app, region))
+// extractor allows to retrieve a file from a content hash.
+type extractor struct {
+	Storage Storage
+
+	version         common.Version
+	build           common.BuildConfig
+	cdn             common.Cdn
+	encoding        common.Encoding
+	archivesIndices []archiveIndex
+}
+
+// newExtractor makes use of Storage.
+func newExtractor(Storage Storage) (*extractor, error) {
+	// Versions
+	versionsR, err := Storage.OpenVersions()
 	if err != nil {
 		return nil, err
 	}
@@ -33,81 +39,44 @@ func newExtractor(downloader Downloader, app, region string) (*extractor, error)
 	if err != nil {
 		return nil, err
 	}
-	version, ok := versions[region]
+	version, ok := versions[Storage.AppRegion()]
 	if !ok {
-		return nil, fmt.Errorf("region %s not found", region)
-	}
-
-	// CDN urls
-	cdnR, err := downloader.Get(common.NGDPCdnsURL(app, region))
-	if err != nil {
-		return nil, err
-	}
-
-	cdns, err := common.ParseCdn(cdnR)
-	if err != nil {
-		return nil, err
-	}
-
-	cdn, ok := cdns[RegionUS]
-	if !ok {
-		return nil, errors.New("cdn region not found")
-	}
-
-	if len(cdn.Hosts) == 0 {
-		return nil, errors.New("no cdn host")
+		return nil, fmt.Errorf("region %s not found", Storage.AppRegion())
 	}
 
 	// Build Config
-	buildCfgR, err := downloader.Get(common.Url(cdn.Hosts[0],
-		cdn.Path,
-		common.PathTypeConfig,
-		hex.EncodeToString(version.BuildHash),
-		false))
+	buildCfgR, err := Storage.OpenConfig(version.BuildConfigHash)
 	if err != nil {
 		return nil, err
 	}
-
 	buildCfg, err := common.ParseBuildConfig(buildCfgR)
 	if err != nil {
 		return nil, err
 	}
-
 	if len(buildCfg.EncodingHash) != 2 {
 		return nil, errors.New("expected 2 encoding hashes inside the build config")
 	}
-
 	fmt.Println("encoding:", buildCfg.EncodingHash[1])
 
 	// Encoding File
-	encodingR, err := downloader.Get(common.Url(cdn.Hosts[0],
-		cdn.Path,
-		common.PathTypeData,
-		hex.EncodeToString(buildCfg.EncodingHash[1]), false))
+	// TODO handle cases where only 1 encoding hash is provided
+	encodingR, err := Storage.OpenData(buildCfg.EncodingHash[1])
 	if err != nil {
 		return nil, err
 	}
-
 	encodingDecodedR := bytes.NewBuffer([]byte{})
 	if err := blte.Decode(encodingR, encodingDecodedR); err != nil {
 		return nil, err
 	}
-
 	encoding, err := common.ParseEncoding(encodingDecodedR)
 	if err != nil {
 		return nil, err
 	}
-
 	// CDN Config
-	cdnCfgR, err := downloader.Get(common.Url(cdn.Hosts[0],
-		cdn.Path,
-		common.PathTypeConfig,
-		hex.EncodeToString(version.CDNHash),
-		false))
+	cdnCfgR, err := Storage.OpenConfig(version.CDNConfigHash)
 	if err != nil {
 		return nil, err
 	}
-
 	cdnCfg, err := common.ParseCdnConfig(cdnCfgR)
 	if err != nil {
 		return nil, err
@@ -116,13 +85,9 @@ func newExtractor(downloader Downloader, app, region string) (*extractor, error)
 	// Load all Archives Index
 	// fmt.Printf("loading archive indices (%d)\n", len(cdnCfg.ArchivesHashes))
 	// map of archive hash => archive indices
-	archivesIdxs := map[string][]common.ArchiveIndexEntry{}
+	archivesIndices := []archiveIndex{}
 	for _, archiveHash := range cdnCfg.ArchivesHashes {
-		idxR, err := downloader.Get(common.Url(cdn.Hosts[0],
-			cdn.Path,
-			common.PathTypeData,
-			hex.EncodeToString(archiveHash),
-			true))
+		idxR, err := Storage.OpenIndex(archiveHash)
 		if err != nil {
 			return nil, err
 		}
@@ -130,82 +95,55 @@ func newExtractor(downloader Downloader, app, region string) (*extractor, error)
 		if err != nil {
 			return nil, err
 		}
-		archivesIdxs[hex.EncodeToString(archiveHash)] = append(archivesIdxs[hex.EncodeToString(archiveHash)], idxs...)
+		for _, idx := range idxs {
+			archivesIndices = append(archivesIndices, archiveIndex{idx, archiveHash})
+		}
 	}
 
 	return &extractor{
-		downloader:   downloader,
-		version:      version,
-		build:        buildCfg,
-		cdn:          cdn,
-		encoding:     encoding,
-		archivesIdxs: archivesIdxs,
+		Storage:         Storage,
+		version:         version,
+		build:           buildCfg,
+		encoding:        encoding,
+		archivesIndices: archivesIndices,
 	}, nil
 }
 
 // extract retrieves a file from a content hash
-func (s *extractor) extract(contentHash []byte) ([]byte, error) {
-	encodedHash, err := s.encoding.FindEncodedHash(contentHash)
+func (e extractor) extract(contentHash []byte) ([]byte, error) {
+	encodedHash, err := e.encoding.FindEncodedHash(contentHash)
 	if err != nil {
 		return nil, err
 	}
-
 	// fmt.Printf("encoded hash for decoded hash %x is %x\n", contentHash, encodedHash)
-
-	archiveInfo := struct {
-		ArchiveHash string
-		Index       common.ArchiveIndexEntry
-	}{}
-	for archiveHash, indices := range s.archivesIdxs {
-		for _, idx := range indices {
-			if bytes.Compare(encodedHash, idx.HeaderHash[:]) == 0 {
-				archiveInfo = struct {
-					ArchiveHash string
-					Index       common.ArchiveIndexEntry
-				}{archiveHash, idx}
-				break
-			}
+	var foundIndex archiveIndex
+	for _, idx := range e.archivesIndices {
+		if bytes.Compare(encodedHash, idx.HeaderHash[:]) == 0 {
+			foundIndex = idx
+			break
 		}
 	}
-
-	if archiveInfo.ArchiveHash == "" || archiveInfo.Index == (common.ArchiveIndexEntry{}) {
+	if foundIndex.archiveHash == nil {
 		// encodedHash was not found inside archive indices, try to download the whole file
-		r, err := s.downloader.Get(common.Url(s.cdn.Hosts[0],
-			s.cdn.Path,
-			common.PathTypeData,
-			hex.EncodeToString(encodedHash),
-			false))
+		r, err := e.Storage.OpenData(encodedHash)
 		if err != nil {
 			return nil, err
 		}
-		//TODO no blte decode?
-		return ioutil.ReadAll(r)
+
+		b, err := ioutil.ReadAll(r) //TODO no blte decode?? unlike if found inside archive index
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		return b, nil
 	}
-
-	// TODO should only download relevant part of the archive using
-	// http header Content-Range bytes start-end/total:
-	//  1. check file exist
-	//  2. check file size is >= offset+size
-	//  3. check the content of file offset-size is not just 0 padded
-	//
-	//  To store downloaded content-range open the file and write
-	//  the content to the correct offset.
-
-	archive, err := s.downloader.Get(common.Url(s.cdn.Hosts[0],
-		s.cdn.Path,
-		common.PathTypeData,
-		archiveInfo.ArchiveHash,
-		false))
+	archive, err := e.Storage.OpenData(foundIndex.archiveHash)
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Printf("downloaded whole archive %x to get chunk at offset: %d and size: %d\n", archiveInfo.ArchiveHash, archiveInfo.Index.Offset, archiveInfo.Index.EncodedSize)
-
-	if _, err := archive.Seek(int64(archiveInfo.Index.Offset), 0); err != nil {
+	if _, err := archive.Seek(int64(foundIndex.Offset), 0); err != nil {
 		return nil, err
 	}
-	encodedFile := make([]byte, archiveInfo.Index.EncodedSize)
+	encodedFile := make([]byte, foundIndex.EncodedSize)
 	if _, err := io.ReadFull(archive, encodedFile); err != nil {
 		return nil, err
 	}

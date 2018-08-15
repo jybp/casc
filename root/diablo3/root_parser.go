@@ -5,6 +5,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+
+	"github.com/pkg/errors"
 )
 
 type namedEntry struct {
@@ -19,10 +21,10 @@ type d3RootFile struct {
 func parseD3RootFile(r io.Reader) (d3RootFile, error) {
 	var sig uint32
 	if err := binary.Read(r, binary.LittleEndian, &sig); err != nil {
-		return d3RootFile{}, err
+		return d3RootFile{}, errors.WithStack(err)
 	}
 	if sig != 0x8007D0C4 /* Diablo III */ {
-		return d3RootFile{}, fmt.Errorf("invalid Diablo III root signature %x", sig)
+		return d3RootFile{}, errors.WithStack(fmt.Errorf("invalid Diablo III root signature %x", sig))
 	}
 	//Root only contains named entries
 	namedEntries, err := parseNamedEntries(r)
@@ -35,20 +37,20 @@ func parseD3RootFile(r io.Reader) (d3RootFile, error) {
 func parseNamedEntries(r io.Reader) ([]namedEntry, error) {
 	var numberNamedEntries uint32
 	if err := binary.Read(r, binary.LittleEndian, &numberNamedEntries); err != nil { //TODO should be BigEndian?!
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	// fmt.Printf("named entries in root: %d\n", numberNamedEntries)
 	namedEntries := []namedEntry{}
 	for i := uint32(0); i < numberNamedEntries; i++ {
 		namedEntry := namedEntry{}
 		if err := binary.Read(r, binary.BigEndian, &namedEntry.ContentKey); err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		filenameBuf := bytes.NewBufferString("")
 		for {
 			var c byte
 			if err := binary.Read(r, binary.BigEndian, &c); err != nil {
-				return nil, err
+				return nil, errors.WithStack(err)
 			}
 			if c == 0 { //ASCIIZ
 				break
