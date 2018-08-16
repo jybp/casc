@@ -3,7 +3,7 @@ casc-explorer explore CASC files from the command-line.
 Usage:
 	casc-explorer (-dir <install-dir> | -app <app> -cache <cache-dir> [-region <region>] [-cdn <cdn>]) [-v]
 Examples
-	casc-explorer -app d3 -region eu -cdn eu
+	casc-explorer -app d3 -region eu -cdn eu -cache /tmp/casc
 	casc-explorer -dir /Applications/Diablo III/
 */
 package main
@@ -12,31 +12,18 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"time"
 
-	"github.com/gregjones/httpcache"
-	"github.com/gregjones/httpcache/diskcache"
 	"github.com/jybp/casc"
 )
 
-// track prints if the cache is missed
-type track struct {
-	httpcache.Cache
-}
-
-func (t track) Get(key string) (responseBytes []byte, ok bool) {
-	b, ok := t.Cache.Get(key)
-	if !ok {
-		fmt.Printf("cache missed: %s\n ", key)
-	}
-	return b, ok
-}
-
 func main() {
+	defer func(start time.Time) { fmt.Printf("%s\n", time.Since(start)) }(time.Now())
 	var installDir, app, cacheDir, region, cdn string
 	var verbose bool
 	flag.StringVar(&installDir, "dir", "", "game install directory")
 	flag.StringVar(&app, "app", "", "app code")
-	flag.StringVar(&cacheDir, "cache-dir", "cache", "cache directory")
+	flag.StringVar(&cacheDir, "cache", "/tmp/casc", "cache directory")
 	flag.StringVar(&region, "region", casc.RegionUS, "app region code")
 	flag.StringVar(&cdn, "cdn", casc.RegionUS, "cdn region")
 	flag.BoolVar(&verbose, "v", false, "verbose")
@@ -58,17 +45,19 @@ func main() {
 			return
 		}
 	} else {
+		transport := http.DefaultTransport
 		if verbose {
+			transport = logTransport{}
 			fmt.Printf("online with app: %s, region: %s, cdn region: %s, cache dir: %s\n",
 				app, region, cdn, cacheDir)
 		}
-		var cache httpcache.Cache = diskcache.New(cacheDir)
-		if verbose {
-			cache = track{cache}
-		}
+
+		client := &http.Client{Transport: &cascCache{
+			cacheDir:  cacheDir,
+			transport: transport,
+		}}
 		var err error
-		explorer, err = casc.NewOnlineExplorer(app, region, cdn,
-			&http.Client{Transport: httpcache.NewTransport(cache)})
+		explorer, err = casc.NewOnlineExplorer(app, region, cdn, client)
 		if err != nil {
 			fmt.Printf("%+v\n", err)
 			return

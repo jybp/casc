@@ -5,7 +5,7 @@ test:
 	@go test -race -v ./...
 
 online: 
-	@cd ./cmd/casc-explorer && go build && ./casc-explorer -v -app d3 -region eu -cdn eu 
+	@cd ./cmd/casc-explorer && go build && ./casc-explorer -v -app d3 -region eu -cdn eu -cache cache
 
 local: 
 	@cd ./cmd/casc-explorer && go build && ./casc-explorer -v -dir "/Applications/Diablo III"
