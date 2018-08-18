@@ -111,10 +111,30 @@ func newExtractor(Storage Storage) (*extractor, error) {
 
 // extract retrieves a file from a content hash
 func (e extractor) extract(contentHash []byte) ([]byte, error) {
+
+	fmt.Printf("extracting %x\n", contentHash)
+
 	encodedHash, err := e.encoding.FindEncodedHash(contentHash)
 	if err != nil {
 		return nil, err
 	}
+
+	if _, ok := (e.Storage).(*LocalStorage); ok { //TODO...
+		blteEncoded, err := e.Storage.OpenData(encodedHash)
+		if err != nil {
+			return nil, err
+		}
+		b, err := ioutil.ReadAll(blteEncoded)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		blteDecoded := bytes.NewBuffer([]byte{})
+		if err := blte.Decode(bytes.NewBuffer(b), blteDecoded); err != nil {
+			return nil, err
+		}
+		return ioutil.ReadAll(blteDecoded)
+	}
+
 	// fmt.Printf("encoded hash for decoded hash %x is %x\n", contentHash, encodedHash)
 	var foundIndex archiveIndex
 	for _, idx := range e.archivesIndices {
@@ -143,13 +163,13 @@ func (e extractor) extract(contentHash []byte) ([]byte, error) {
 	if _, err := archive.Seek(int64(foundIndex.Offset), 0); err != nil {
 		return nil, err
 	}
-	encodedFile := make([]byte, foundIndex.EncodedSize)
-	if _, err := io.ReadFull(archive, encodedFile); err != nil {
+	blteEncoded := make([]byte, foundIndex.EncodedSize)
+	if _, err := io.ReadFull(archive, blteEncoded); err != nil {
 		return nil, err
 	}
-	decodedFile := bytes.NewBuffer([]byte{})
-	if err := blte.Decode(bytes.NewBuffer(encodedFile), decodedFile); err != nil {
+	blteDecoded := bytes.NewBuffer([]byte{})
+	if err := blte.Decode(bytes.NewBuffer(blteEncoded), blteDecoded); err != nil {
 		return nil, err
 	}
-	return decodedFile.Bytes(), nil
+	return blteDecoded.Bytes(), nil
 }
