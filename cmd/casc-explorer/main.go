@@ -1,7 +1,7 @@
 /*
 casc-explorer explore CASC files from the command-line.
 Usage:
-	casc-explorer (-dir <install-dir> | -app <app> -cache <cache-dir> [-region <region>] [-cdn <cdn>]) [-v]
+	casc-explorer (-dir <install-dir> | -app <app> [-cache <cache-dir>] [-region <region>] [-cdn <cdn>]) [-v]
 Examples
 	casc-explorer -app d3 -region eu -cdn eu -cache /tmp/casc
 	casc-explorer -dir /Applications/Diablo III/

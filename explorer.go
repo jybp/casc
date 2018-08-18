@@ -1,7 +1,6 @@
 package casc
 
 import (
-	"io"
 	"net/http"
 
 	"github.com/jybp/casc/root/diablo3"
@@ -32,13 +31,9 @@ const (
 // Storage descibes how to fetch CASC content.
 type Storage interface {
 	App() string
-	Region() string
-
-	OpenVersions() (io.ReadSeeker, error)
-	OpenConfig(hash []byte) (io.ReadSeeker, error)
-	OpenIndex(hash []byte) (io.ReadSeeker, error)
-	OpenData(hash []byte) (io.ReadSeeker, error) //change signature so not everything is loaded to memory
-	//OpenData(hash []byte, offset, size int) (io.ReadSeeker, error)
+	Version() string
+	RootHash() []byte
+	DataFromContentHash(hash []byte) ([]byte, error)
 }
 
 // Each app has its own way of relating file names to content hash.
@@ -49,17 +44,17 @@ type root interface {
 
 // Explorer allows to list and extract CASC files.
 type Explorer struct {
-	extractor *extractor
-	root      root
+	storage Storage
+	root    root
 }
 
 // NewOnlineExplorer will use client to fetch CASC files.
 func NewOnlineExplorer(app, region, cdnRegion string, client *http.Client) (*Explorer, error) {
-	ngdp, err := newNGDP(app, region, cdnRegion, client)
+	storage, err := newOnlineStorage(app, region, cdnRegion, client)
 	if err != nil {
 		return nil, err
 	}
-	return newExplorer(ngdp)
+	return newExplorer(storage)
 }
 
 // NewLocalExplorer will use files located under installDir to fetch CASC files.
@@ -71,27 +66,21 @@ func NewLocalExplorer(installDir string) (*Explorer, error) {
 	return newExplorer(local)
 }
 
-func newExplorer(Storage Storage) (*Explorer, error) {
-	extractor, err := newExtractor(Storage)
-	if err != nil {
-		return nil, err
-	}
+func newExplorer(storage Storage) (*Explorer, error) {
 	var root root
-	switch Storage.App() {
+	var err error
+	switch storage.App() {
 	case Diablo3:
-		root, err = diablo3.NewRoot(extractor.build.RootHash, extractor.extract)
-		if err != nil {
-			return nil, err
-		}
+		root, err = diablo3.NewRoot(storage.RootHash(), storage.DataFromContentHash)
 	default:
 		return nil, errors.WithStack(errors.New("unsupported app"))
 	}
-	return &Explorer{extractor, root}, nil
+	return &Explorer{storage, root}, err
 }
 
 // Version returns the version of the game on the given region.
 func (e Explorer) Version() string {
-	return e.extractor.version.Name
+	return e.storage.Version()
 }
 
 // Files enumerates all files.
@@ -105,5 +94,5 @@ func (e Explorer) Extract(filename string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return e.extractor.extract(contentHash)
+	return e.storage.DataFromContentHash(contentHash)
 }

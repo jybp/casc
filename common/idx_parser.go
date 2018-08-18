@@ -2,7 +2,6 @@ package common
 
 import (
 	"encoding/binary"
-	"fmt"
 	"io"
 
 	"github.com/pkg/errors"
@@ -39,7 +38,6 @@ func ParseIdx(r io.Reader) ([]IdxEntry, error) {
 
 	entrySize := int(h.EntrySizeBytes) + int(h.EntryOffsetBytes) + int(h.EntryKeyBytes)
 	numberOfEntries := int(h.EntriesSize) / entrySize
-	fmt.Printf("%+v %d\n", h, numberOfEntries)
 
 	entries := []IdxEntry{}
 	for i := 0; i < numberOfEntries; i++ {

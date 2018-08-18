@@ -51,6 +51,7 @@ type Encoding struct {
 	EncCTable []encCTableEntry
 }
 
+//TODO move from common pkg
 func (e Encoding) FindEncodedHash(decodedHash []byte) (encodedHash []byte, err error) {
 	for _, tableEntry := range e.EncCTable {
 		// a faster is to first look at e.Index.Hash which is the first content key of the table entries
@@ -70,7 +71,6 @@ func (e Encoding) FindEncodedHash(decodedHash []byte) (encodedHash []byte, err e
 	return nil, errors.WithStack(fmt.Errorf("no encoded hash found for decoded hash %x", decodedHash))
 }
 
-//Warning: BLTE encoded
 func ParseEncoding(r io.Reader) (Encoding, error) {
 	h := &encFileHeader{}
 	if err := binary.Read(r, binary.BigEndian, h); err != nil {

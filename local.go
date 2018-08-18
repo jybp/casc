@@ -9,46 +9,55 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strconv"
 
+	"github.com/jybp/casc/blte"
 	"github.com/jybp/casc/common"
 	"github.com/pkg/errors"
 )
 
-type LocalStorage struct {
-	app        string
-	region     string
-	installDir string
+type local struct {
+	app                   string
+	versionName           string
+	rootEncodedHash       []byte
+	encoding              common.Encoding
+	dataFromEncodedHashFn func(hash []byte) ([]byte, error)
 }
 
-func binaryExists(filename string) bool {
-	if _, err := os.Stat(filename + ".exe"); err == nil {
-		return true
-	}
-	if _, err := os.Stat(filename + ".app"); err == nil {
-		return true
-	}
-	return false
-}
+func newLocalStorage(installDir string) (*local, error) {
 
-func detectApp(installDir string) (string, error) {
-	if binaryExists(path.Join(installDir, "Diablo III")) {
-		return Diablo3, nil
-	}
-	return "", errors.WithStack(errors.New("unsupported app"))
-}
+	//
+	// Set app
+	//
 
-func newLocalStorage(installDir string) (*LocalStorage, error) {
-	app, err := detectApp(installDir)
+	findAppFn := func() (string, error) {
+		binaryToApp := map[string]string{
+			"Diablo III": Diablo3,
+		}
+		for binary, app := range binaryToApp {
+			if _, err := os.Stat(path.Join(installDir, binary+".exe")); err == nil {
+				return app, nil
+			}
+			if _, err := os.Stat(path.Join(installDir, binary+".app")); err == nil {
+				return app, nil
+			}
+		}
+		return "", errors.WithStack(errors.New("unsupported app"))
+	}
+	app, err := findAppFn()
 	if err != nil {
 		return nil, err
 	}
 
-	//TODO fetching region is not efficient
-	b, err := ioutil.ReadFile(path.Join(installDir, ".build.info"))
+	//
+	// Set versionName
+	//
+
+	buildInfoB, err := ioutil.ReadFile(path.Join(installDir, ".build.info"))
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	versions, err := common.ParseVersions(bytes.NewReader(b))
+	versions, err := common.ParseVersions(bytes.NewReader(buildInfoB))
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -59,148 +68,182 @@ func newLocalStorage(installDir string) (*LocalStorage, error) {
 	for key := range versions {
 		region = key
 	}
-	return &LocalStorage{app, region, installDir}, nil
-}
+	version := versions[region]
 
-func (l LocalStorage) App() string {
-	return l.app
-}
+	//
+	// Set RootEncodedHash
+	//
 
-func (l LocalStorage) Region() string {
-	return l.region
-}
-
-func (l LocalStorage) OpenVersions() (io.ReadSeeker, error) {
-	b, err := ioutil.ReadFile(path.Join(l.installDir, ".build.info"))
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-	return bytes.NewReader(b), nil
-}
-
-func (l LocalStorage) OpenConfig(hash []byte) (io.ReadSeeker, error) {
-	hashStr := hex.EncodeToString(hash)
-	b, err := ioutil.ReadFile(path.Join(l.installDir,
+	buildConfigHash := hex.EncodeToString(version.BuildConfigHash)
+	buildConfigB, err := ioutil.ReadFile(path.Join(installDir,
 		"Data",
 		common.PathTypeConfig,
-		hashStr[0:2],
-		hashStr[2:4],
-		hashStr))
+		buildConfigHash[0:2],
+		buildConfigHash[2:4],
+		buildConfigHash))
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	return bytes.NewReader(b), nil
-}
+	buildCfg, err := common.ParseBuildConfig(bytes.NewReader(buildConfigB))
+	if err != nil {
+		return nil, err
+	}
 
-func (l LocalStorage) OpenIndex(hash []byte) (io.ReadSeeker, error) {
-	hashStr := hex.EncodeToString(hash)
-	b, err := ioutil.ReadFile(path.Join(l.installDir,
-		"Data",
-		"indices",
-		hashStr+".index"))
+	//
+	// Set encoding and dataFromEncodedHashFn
+	//
+
+	// Load all indices
+	files, err := ioutil.ReadDir(path.Join(installDir, "Data", "data"))
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	return bytes.NewReader(b), nil
-}
-
-func (l LocalStorage) OpenData(hash []byte) (io.ReadSeeker, error) {
-	//TODO parse all .idx files during newLocalStorage..
-	if len(hash) < 9 {
-		return nil, errors.WithStack(errors.New("invalid hash len"))
-	}
-	i := hash[0] ^ hash[1] ^ hash[2] ^ hash[3] ^ hash[4] ^ hash[5] ^ hash[6] ^ hash[7] ^ hash[8]
-	bucket := (i & 0xf) ^ (i >> 4)
-	idxName := hex.EncodeToString([]byte{bucket})
-
-	files, err := ioutil.ReadDir(path.Join(l.installDir, "Data", "data"))
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-	entries := []common.IdxEntry{}
+	idxEntries := map[uint8][]common.IdxEntry{}
 	for _, file := range files {
 		name := file.Name()
-		if len(name) < 6 {
+		if len(name) < 4 {
 			continue
 		}
-		if name[:2] != idxName || name[len(name)-4:] != ".idx" {
+		if name[len(name)-4:] != ".idx" {
 			continue
 		}
-		f, err := os.Open(path.Join(l.installDir, "Data", "data", name))
+		f, err := os.Open(path.Join(installDir, "Data", "data", name))
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
-		e, err := common.ParseIdx(f)
-		if err := f.Close(); err != nil {
-			return nil, err
+		bucketID, err := strconv.ParseUint(string(name[1]), 16, 8)
+		if err != nil {
+			return nil, errors.WithStack(err)
 		}
+		fmt.Printf("parsing bucket %x: %s\n", uint8(bucketID), name)
+		indices, err := common.ParseIdx(f)
+		f.Close()
 		if err != nil {
 			return nil, err
 		}
-		entries = append(entries, e...)
+		idxEntries[uint8(bucketID)] = append(idxEntries[uint8(bucketID)], indices...)
 	}
-	foundEntry := common.IdxEntry{}
-	for i, entry := range entries {
-		keyLen := len(entry.Key)
-		hashLen := len(hash)
-		shift := hashLen - keyLen
-		if shift < 0 {
-			return nil, errors.WithStack(errors.New("invalid key/hash len"))
+
+	bucketIDFn := func(hash []byte) (uint8, error) {
+		if len(hash) < 9 {
+			return 0, errors.WithStack(errors.New("invalid hash len"))
 		}
-		h := hash[:len(hash)-shift]
-		if bytes.Compare(h, entry.Key) == 0 {
-			foundEntry = entry
-			fmt.Printf("looking for %x\nfound (entry n°%d/%d):%+v\n", hash, i, len(entries), foundEntry)
-			continue //TODO duplicated entries, take the last one? Explicitly sort files
+		i := hash[0] ^ hash[1] ^ hash[2] ^ hash[3] ^ hash[4] ^ hash[5] ^ hash[6] ^ hash[7] ^ hash[8]
+		return (i & 0xf) ^ (i >> 4), nil
+	}
+
+	findIdxFn := func(hash []byte, idxs []common.IdxEntry) (common.IdxEntry, error) {
+		foundIdx := common.IdxEntry{}
+		for i, idx := range idxs {
+			keyLen := len(idx.Key)
+			hashLen := len(hash)
+			shift := hashLen - keyLen
+			if shift < 0 {
+				return common.IdxEntry{}, errors.WithStack(errors.New("invalid key/hash len"))
+			}
+			h := hash[:len(hash)-shift]
+			if bytes.Compare(h, idx.Key) == 0 {
+				foundIdx = idx
+				fmt.Printf("looking for %x\nfound (entry n°%d/%d):%+v\n", hash, i, len(idxs), foundIdx)
+				continue //TODO duplicated entries, take the last one? Explicitly sort files?
+			}
 		}
+		if foundIdx.Key == nil {
+			return common.IdxEntry{}, errors.WithStack(errors.New("key not found in idx"))
+		}
+		return foundIdx, nil
 	}
-	if foundEntry.Key == nil {
-		return nil, errors.WithStack(errors.New("key not found in idx"))
+
+	dataFromEncodedHashFn := func(hash []byte) ([]byte, error) {
+		bucketID, err := bucketIDFn(hash)
+		if err != nil {
+			return nil, err
+		}
+		indices, ok := idxEntries[bucketID]
+		if !ok {
+			return nil, errors.WithStack(fmt.Errorf("bucket %x not found", bucketID))
+		}
+		idx, err := findIdxFn(hash, indices)
+		if err != nil {
+			return nil, err
+		}
+		dataFilename := path.Join(installDir, "Data", "data", "data."+fmt.Sprintf("%03d", idx.Index))
+		f, err := os.Open(dataFilename)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		defer f.Close()
+		if _, err := f.Seek(int64(idx.Offset), 0); err != nil {
+			return nil, errors.WithStack(err)
+		}
+		blteHash := make([]byte, 16)
+		if err := binary.Read(f, binary.LittleEndian, &blteHash); err != nil {
+			fmt.Println(err)
+			return nil, errors.WithStack(err)
+		}
+		for i := len(blteHash)/2 - 1; i >= 0; i-- { //reverse blteHash
+			opp := len(blteHash) - 1 - i
+			blteHash[i], blteHash[opp] = blteHash[opp], blteHash[i]
+		} //TODO check blteHash against hash
+		var size uint32
+		if err := binary.Read(f, binary.LittleEndian, &size); err != nil {
+			return nil, errors.WithStack(err)
+		}
+		if size != idx.Size {
+			return nil, errors.WithStack(errors.New("inconsistent size"))
+		}
+		if _, err := f.Seek(10, 1); err != nil { //unk, ChecksumA, ChecksumB
+			return nil, errors.WithStack(err)
+		}
+		blteEncoded := make([]byte, idx.Size-30)
+		if _, err := io.ReadFull(f, blteEncoded); err != nil {
+			fmt.Println(err)
+			return nil, errors.WithStack(err)
+		}
+		blteDecoded := bytes.NewBuffer([]byte{})
+		if err := blte.Decode(bytes.NewBuffer(blteEncoded), blteDecoded); err != nil {
+			return nil, err
+		}
+		return blteDecoded.Bytes(), nil
 	}
-	dataFilename := path.Join(l.installDir, "Data", "data", "data."+fmt.Sprintf("%03d", foundEntry.Index))
-	fmt.Printf("openning %s\n", dataFilename)
-	f, err := os.Open(dataFilename)
+
+	if len(buildCfg.EncodingHash) < 2 { // TODO handle cases where only 1 encoding hash is provided
+		return nil, errors.WithStack(errors.New("expected at least two encoding hash"))
+	}
+	encodingR, err := dataFromEncodedHashFn(buildCfg.EncodingHash[1])
 	if err != nil {
-		fmt.Println(err)
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
-	defer f.Close()
-	if _, err := f.Seek(int64(foundEntry.Offset), 0); err != nil {
-		fmt.Println(err)
-		return nil, errors.WithStack(err)
+	encoding, err := common.ParseEncoding(bytes.NewReader(encodingR))
+	if err != nil {
+		return nil, err
 	}
-	blteHash := make([]byte, 16)
-	if err := binary.Read(f, binary.LittleEndian, &blteHash); err != nil {
-		fmt.Println(err)
-		return nil, errors.WithStack(err)
+
+	return &local{
+		app:                   app,
+		versionName:           version.Name,
+		rootEncodedHash:       buildCfg.RootHash,
+		encoding:              encoding,
+		dataFromEncodedHashFn: dataFromEncodedHashFn,
+	}, nil
+}
+
+func (s *local) App() string {
+	return s.app
+}
+
+func (s *local) Version() string {
+	return s.versionName
+}
+
+func (s *local) RootHash() []byte {
+	return s.rootEncodedHash
+}
+
+func (s *local) DataFromContentHash(hash []byte) ([]byte, error) {
+	encodedHash, err := s.encoding.FindEncodedHash(hash)
+	if err != nil {
+		return nil, err
 	}
-	for i := len(blteHash)/2 - 1; i >= 0; i-- { //reverse blteHash
-		opp := len(blteHash) - 1 - i
-		blteHash[i], blteHash[opp] = blteHash[opp], blteHash[i]
-	}
-	//TODO check blteHash against hash
-	var size uint32
-	if err := binary.Read(f, binary.LittleEndian, &size); err != nil {
-		return nil, errors.WithStack(err)
-	}
-	if size != foundEntry.Size {
-		return nil, errors.WithStack(errors.New("inconsistent size"))
-	}
-	if _, err := f.Seek(2, 1); err != nil { //unk
-		return nil, errors.WithStack(err)
-	}
-	var checksumA uint32
-	if err := binary.Read(f, binary.LittleEndian, &checksumA); err != nil {
-		return nil, errors.WithStack(err)
-	}
-	var checksumB uint32
-	if err := binary.Read(f, binary.LittleEndian, &checksumB); err != nil {
-		return nil, errors.WithStack(err)
-	}
-	encodedFile := make([]byte, foundEntry.Size-30)
-	if _, err := io.ReadFull(f, encodedFile); err != nil {
-		fmt.Println(err)
-		return nil, errors.WithStack(err)
-	}
-	return bytes.NewReader(encodedFile), nil
+	return s.dataFromEncodedHashFn(encodedHash)
 }
