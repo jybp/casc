@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"sort"
 	"strconv"
 
 	"github.com/jybp/casc/blte"
@@ -98,6 +99,10 @@ func newLocalStorage(installDir string) (*local, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+	// There is multiple files for the same bucket with duplicate entries.
+	// It looks like the last file contains the most up to date indices.
+	// Sort the files accordingly so that the first index findIdxFn finds is the correct.
+	sort.Slice(files, func(i, j int) bool { return files[i].Name() > files[j].Name() })
 	idxEntries := map[uint8][]common.IdxEntry{}
 	for _, file := range files {
 		name := file.Name()
@@ -145,7 +150,7 @@ func newLocalStorage(installDir string) (*local, error) {
 			if bytes.Compare(h, idx.Key) == 0 {
 				foundIdx = idx
 				fmt.Printf("looking for %x\nfound (entry n°%d/%d):%+v\n", hash, i, len(idxs), foundIdx)
-				continue //TODO duplicated entries, take the last one? Explicitly sort files?
+				break
 			}
 		}
 		if foundIdx.Key == nil {

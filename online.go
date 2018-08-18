@@ -140,7 +140,7 @@ func newOnlineStorage(app, region, cdnRegion string, client *http.Client) (*onli
 	if err != nil {
 		return nil, err
 	}
-	archivesIndices := []archiveIndex{} // map of archive hash => archive indices
+	archivesIndices := []archiveIndex{}
 	for _, archiveHash := range cdnCfg.ArchivesHashes {
 		indicesB, err := downloadFn(common.Url(
 			cdn.Hosts[0],
@@ -207,8 +207,8 @@ func (s *online) DataFromContentHash(hash []byte) ([]byte, error) {
 		}
 	}
 	if foundIndex.archiveHash == nil {
-		// encodedHash was not found inside archive indices, try to download the whole file directly
-		return s.downloadDataFn(encodedHash)
+		return nil, errors.WithStack(fmt.Errorf("%x not found in indices", hash))
+		//return s.downloadDataFn(encodedHash) //download directly?
 	}
 	archiveB, err := s.downloadDataFn(foundIndex.archiveHash)
 	if err != nil {

@@ -74,4 +74,5 @@ func main() {
 	for _, filename := range filenames {
 		fmt.Printf("%s\n", filename)
 	}
+	fmt.Printf("%d entries\n", len(filenames))
 }
