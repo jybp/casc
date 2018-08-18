@@ -178,7 +178,7 @@ func newLocalStorage(installDir string) (*local, error) {
 			return nil, errors.WithStack(err)
 		}
 		defer f.Close()
-		if _, err := f.Seek(int64(idx.Offset), 0); err != nil {
+		if _, err := f.Seek(int64(idx.Offset), io.SeekStart); err != nil {
 			return nil, errors.WithStack(err)
 		}
 		blteHash := make([]byte, 16)
@@ -197,7 +197,7 @@ func newLocalStorage(installDir string) (*local, error) {
 		if size != idx.Size {
 			return nil, errors.WithStack(errors.New("inconsistent size"))
 		}
-		if _, err := f.Seek(10, 1); err != nil { //unk, ChecksumA, ChecksumB
+		if _, err := f.Seek(10, io.SeekCurrent); err != nil { //unk, ChecksumA, ChecksumB
 			return nil, errors.WithStack(err)
 		}
 		blteEncoded := make([]byte, idx.Size-30)

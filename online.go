@@ -199,32 +199,38 @@ func (s *online) DataFromContentHash(hash []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	var foundIndex archiveIndex
+
+	decodeBlteFn := func(encoded []byte) ([]byte, error) {
+		blteDecoded := bytes.NewBuffer([]byte{})
+		if err := blte.Decode(bytes.NewBuffer(encoded), blteDecoded); err != nil {
+			return nil, err
+		}
+		return blteDecoded.Bytes(), nil
+	}
+
 	for _, idx := range s.archivesIndices {
 		if bytes.Compare(encodedHash, idx.HeaderHash[:]) == 0 {
-			foundIndex = idx
-			break
+			archiveB, err := s.downloadDataFn(idx.archiveHash)
+			if err != nil {
+				return nil, err
+			}
+			archiveR := bytes.NewReader(archiveB)
+			if _, err := archiveR.Seek(int64(idx.Offset), io.SeekStart); err != nil {
+				return nil, err
+			}
+			blteEncoded := make([]byte, idx.EncodedSize)
+			if _, err := io.ReadFull(archiveR, blteEncoded); err != nil {
+				return nil, err
+			}
+			return decodeBlteFn(blteEncoded)
 		}
 	}
-	if foundIndex.archiveHash == nil {
-		return nil, errors.WithStack(fmt.Errorf("%x not found in indices", hash))
-		//return s.downloadDataFn(encodedHash) //download directly?
-	}
-	archiveB, err := s.downloadDataFn(foundIndex.archiveHash)
+
+	//encoded hash not found in indices, dowload directly
+	blteEncoded, err := s.downloadDataFn(encodedHash)
 	if err != nil {
 		return nil, err
 	}
-	archiveR := bytes.NewReader(archiveB)
-	if _, err := archiveR.Seek(int64(foundIndex.Offset), 0); err != nil {
-		return nil, err
-	}
-	blteEncoded := make([]byte, foundIndex.EncodedSize)
-	if _, err := io.ReadFull(archiveR, blteEncoded); err != nil {
-		return nil, err
-	}
-	blteDecoded := bytes.NewBuffer([]byte{})
-	if err := blte.Decode(bytes.NewBuffer(blteEncoded), blteDecoded); err != nil {
-		return nil, err
-	}
-	return blteDecoded.Bytes(), nil
+	return decodeBlteFn(blteEncoded)
+
 }
