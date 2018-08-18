@@ -56,7 +56,7 @@ func newExtractor(Storage Storage) (*extractor, error) {
 	if len(buildCfg.EncodingHash) != 2 {
 		return nil, errors.New("expected 2 encoding hashes inside the build config")
 	}
-	fmt.Println("encoding:", buildCfg.EncodingHash[1])
+	fmt.Printf("encoding: %x\n", buildCfg.EncodingHash[1])
 
 	// Encoding File
 	// TODO handle cases where only 1 encoding hash is provided

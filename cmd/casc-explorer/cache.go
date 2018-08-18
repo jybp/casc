@@ -29,21 +29,6 @@ type cascCache struct {
 	transport http.RoundTripper
 }
 
-func (c cascCache) setCache(r *http.Request, filename string) error {
-	resp, err := c.transport.RoundTrip(r)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	b, err := httputil.DumpResponse(resp, true)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	if err := ioutil.WriteFile(filename, b, 0700); err != nil {
-		return errors.WithStack(err)
-	}
-	return nil
-}
-
 func (c cascCache) RoundTrip(r *http.Request) (*http.Response, error) {
 	rawurl := r.URL.String()
 	if len(rawurl) >= 9 && rawurl[len(rawurl)-9:] == "/versions" ||
@@ -59,7 +44,15 @@ func (c cascCache) RoundTrip(r *http.Request) (*http.Response, error) {
 	io.WriteString(h, rawurl)
 	filename := path.Join(c.cacheDir, hex.EncodeToString(h.Sum(nil)))
 	if _, err := os.Stat(filename); err != nil {
-		if err := c.setCache(r, filename); err != nil {
+		resp, err := c.transport.RoundTrip(r)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		b, err := httputil.DumpResponse(resp, true)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		if err := ioutil.WriteFile(filename, b, 0700); err != nil {
 			return nil, errors.WithStack(err)
 		}
 	}
@@ -68,10 +61,9 @@ func (c cascCache) RoundTrip(r *http.Request) (*http.Response, error) {
 		return nil, errors.WithStack(err)
 	}
 	defer f.Close()
-	b, err := ioutil.ReadFile(filename)
+	b, err := ioutil.ReadFile(filename) //TODO everything loaded in memory
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	buf := bytes.NewBuffer(b)
-	return http.ReadResponse(bufio.NewReader(buf), r)
+	return http.ReadResponse(bufio.NewReader(bytes.NewBuffer(b)), r)
 }
