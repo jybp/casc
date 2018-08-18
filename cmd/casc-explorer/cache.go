@@ -24,44 +24,61 @@ func (logTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	return http.DefaultTransport.RoundTrip(r)
 }
 
-type cascCache struct {
-	cacheDir  string
-	transport http.RoundTripper
+var filter = func(r *http.Request) bool {
+	rawurl := r.URL.String()
+	return (len(rawurl) >= 9 && rawurl[len(rawurl)-9:] == "/versions") ||
+		(len(rawurl) >= 5 && rawurl[len(rawurl)-5:] == "/cdns")
 }
 
-func (c cascCache) RoundTrip(r *http.Request) (*http.Response, error) {
-	rawurl := r.URL.String()
-	if len(rawurl) >= 9 && rawurl[len(rawurl)-9:] == "/versions" ||
-		len(rawurl) >= 5 && rawurl[len(rawurl)-5:] == "/cdns" {
-		return c.transport.RoundTrip(r)
+//TODO move to github.com/jybp/httpcache
+
+const (
+	defaultDir                  = "cache"
+	defaultFilePerm os.FileMode = 0666
+	defaultPathPerm os.FileMode = 0777
+)
+
+// Transport implements http.RoundTripper and returns responses from a cache.
+type Transport struct {
+	Dir       string
+	PathPerm  os.FileMode
+	FilePerm  os.FileMode
+	Transport http.RoundTripper          // used to make requests on cache miss
+	Filter    func(r *http.Request) bool // cache won't be used for filtered requests
+}
+
+func (t Transport) RoundTrip(r *http.Request) (*http.Response, error) {
+	if t.Filter != nil && t.Filter(r) {
+		return t.Transport.RoundTrip(r)
 	}
-	if _, err := os.Stat(c.cacheDir); err != nil {
-		if err := os.MkdirAll(c.cacheDir, 0700); err != nil {
+	if _, err := os.Stat(t.Dir); err != nil {
+		if t.PathPerm == 0 {
+			t.PathPerm = defaultPathPerm
+		}
+		if err := os.MkdirAll(t.Dir, t.PathPerm); err != nil {
 			return nil, err
 		}
 	}
 	h := md5.New()
-	io.WriteString(h, rawurl)
-	filename := path.Join(c.cacheDir, hex.EncodeToString(h.Sum(nil)))
+	io.WriteString(h, r.URL.String())
+	filename := path.Join(t.Dir, hex.EncodeToString(h.Sum(nil)))
 	if _, err := os.Stat(filename); err != nil {
-		resp, err := c.transport.RoundTrip(r)
-		if err != nil {
-			return nil, errors.WithStack(err)
+		resp, err := t.Transport.RoundTrip(r)
+		if err != nil || resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			return resp, errors.WithStack(err)
 		}
 		b, err := httputil.DumpResponse(resp, true)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
-		if err := ioutil.WriteFile(filename, b, 0700); err != nil {
+		if t.FilePerm == 0 {
+			t.FilePerm = defaultFilePerm
+		}
+		if err := ioutil.WriteFile(filename, b, t.FilePerm); err != nil {
 			return nil, errors.WithStack(err)
 		}
 	}
-	f, err := os.Open(filename)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-	defer f.Close()
-	b, err := ioutil.ReadFile(filename) //TODO everything loaded in memory
+	b, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

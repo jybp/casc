@@ -52,9 +52,10 @@ func main() {
 				app, region, cdn, cacheDir)
 		}
 
-		client := &http.Client{Transport: &cascCache{
-			cacheDir:  cacheDir,
-			transport: transport,
+		client := &http.Client{Transport: &Transport{
+			Dir:       cacheDir,
+			Transport: transport,
+			Filter:    filter,
 		}}
 		var err error
 		explorer, err = casc.NewOnlineExplorer(app, region, cdn, client)
@@ -64,7 +65,7 @@ func main() {
 		}
 	}
 
-	fmt.Printf("%s - %s - %s:\n", app, region, explorer.Version())
+	fmt.Printf("version: %s:\n", explorer.Version())
 	filenames, err := explorer.Files()
 	if err != nil {
 		fmt.Printf("%+v\n", err)
