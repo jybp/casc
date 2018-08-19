@@ -11,7 +11,11 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/jybp/casc"
@@ -71,8 +75,35 @@ func main() {
 		fmt.Printf("%+v\n", err)
 		return
 	}
-	for _, filename := range filenames {
-		fmt.Printf("%s\n", filename)
+	filesCount := len(filenames)
+	resultDir := "online"
+	if installDir != "" {
+		resultDir = "local"
 	}
-	fmt.Printf("%d entries\n", len(filenames))
+	for i, filename := range filenames {
+		if i%1000 == 0 {
+			fmt.Printf("progress %d/%d\n", i, filesCount)
+		}
+		if !strings.HasPrefix(filename, "Base\\Music\\") {
+			continue
+		}
+		b, err := explorer.Extract(filename)
+		if err != nil {
+			fmt.Printf("cannot extract %s: %s\n", filename, err.Error())
+		}
+		filename = strings.Replace(filename, "\\", string(filepath.Separator), -1)
+		fullname := filepath.Join(resultDir, explorer.App(), explorer.Version(), filename)
+		dir := filepath.Dir(fullname)
+		if _, err := os.Stat(dir); err != nil {
+			if err := os.MkdirAll(dir, 0777); err != nil {
+				fmt.Printf("cannot create dir %s: %s\n", dir, err.Error())
+				continue
+			}
+		}
+		if err := ioutil.WriteFile(fullname, b, 0666); err != nil {
+			fmt.Printf("cannot write file %s: %s\n", fullname, err.Error())
+			continue
+		}
+	}
+	fmt.Printf("%d entries\n", filesCount)
 }

@@ -18,8 +18,10 @@ blte/test_encoded
 
 doc
 cache
-example
 blte
 !blte/
 casc-explorer
 !casc-explorer/
+local
+online
+*.log

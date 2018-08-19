@@ -10,7 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
-	"path"
+	"path/filepath"
 
 	"os"
 
@@ -61,7 +61,7 @@ func (t Transport) RoundTrip(r *http.Request) (*http.Response, error) {
 	}
 	h := md5.New()
 	io.WriteString(h, r.URL.String())
-	filename := path.Join(t.Dir, hex.EncodeToString(h.Sum(nil)))
+	filename := filepath.Join(t.Dir, hex.EncodeToString(h.Sum(nil)))
 	if _, err := os.Stat(filename); err != nil {
 		resp, err := t.Transport.RoundTrip(r)
 		if err != nil || resp.StatusCode < 200 || resp.StatusCode >= 300 {

@@ -5,7 +5,9 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"path"
 	"sort"
+	"unsafe"
 
 	"github.com/pkg/errors"
 )
@@ -32,78 +34,79 @@ type SnoExtension struct {
 }
 
 type SnoInfo struct {
-	SnoExtension
-	GroupID uint32
+	SnoGroupID uint32
+	Filename   string
 }
 
+// SnoExtensions relates arbitrary friendly names => extension
 var SnoExtensions = []SnoExtension{
-	SnoExtension{"", ""},             //0
-	SnoExtension{"Actor", "acr"},     //1
-	SnoExtension{"Adventure", "adv"}, //2 ...
-	SnoExtension{"AiBehavior", ""},
-	SnoExtension{"AiState", ""},
-	SnoExtension{"AmbientSound", "ams"},
-	SnoExtension{"Anim", "ani"},
-	SnoExtension{"Animation2D", "an2"},
-	SnoExtension{"AnimSet", "ans"},
-	SnoExtension{"Appearance", "app"},
-	SnoExtension{"Hero", ""},
-	SnoExtension{"Cloth", "clt"},
-	SnoExtension{"Conversation", "cnv"},
-	SnoExtension{"ConversationList", ""},
-	SnoExtension{"EffectGroup", "efg"},
-	SnoExtension{"Encounter", "enc"},
-	SnoExtension{"Explosion", "xpl"},
-	SnoExtension{"FlagSet", ""},
-	SnoExtension{"Font", "fnt"},
-	SnoExtension{"GameBalance", "gam"},
-	SnoExtension{"Globals", "glo"},
-	SnoExtension{"LevelArea", "lvl"},
-	SnoExtension{"Light", "lit"},
-	SnoExtension{"MarkerSet", "mrk"},
-	SnoExtension{"Monster", "mon"},
-	SnoExtension{"Observer", "obs"},
-	SnoExtension{"Particle", "prt"},
-	SnoExtension{"Physics", "phy"},
-	SnoExtension{"Power", "pow"},
-	SnoExtension{"Quest", "qst"},
-	SnoExtension{"Rope", "rop"},
-	SnoExtension{"Scene", "scn"},
-	SnoExtension{"SceneGroup", "scg"},
-	SnoExtension{"Script", ""},
-	SnoExtension{"ShaderMap", "shm"},
-	SnoExtension{"Shaders", "shd"},
-	SnoExtension{"Shakes", "shk"},
-	SnoExtension{"SkillKit", "skl"},
-	SnoExtension{"Sound", "snd"},
-	SnoExtension{"SoundBank", "sbk"},
-	SnoExtension{"StringList", "stl"},
-	SnoExtension{"Surface", "srf"},
-	SnoExtension{"Textures", "tex"},
-	SnoExtension{"Trail", "trl"},
-	SnoExtension{"UI", "ui"},
-	SnoExtension{"Weather", "wth"},
-	SnoExtension{"Worlds", "wrl"},
-	SnoExtension{"Recipe", "rcp"},
-	SnoExtension{"Condition", "cnd"},
-	SnoExtension{"TreasureClass", ""},
-	SnoExtension{"Account", ""},
-	SnoExtension{"Conductor", ""},
-	SnoExtension{"TimedEvent", ""},
-	SnoExtension{"Act", "act"},
-	SnoExtension{"Material", "mat"},
-	SnoExtension{"QuestRange", "qsr"},
-	SnoExtension{"Lore", "lor"},
-	SnoExtension{"Reverb", "rev"},
-	SnoExtension{"PhysMesh", "phm"},
-	SnoExtension{"Music", "mus"},
-	SnoExtension{"Tutorial", "tut"},
-	SnoExtension{"BossEncounter", "bos"},
-	SnoExtension{"ControlScheme", ""},
-	SnoExtension{"Accolade", "aco"},
-	SnoExtension{"AnimTree", "ant"},
-	SnoExtension{"Vibration", ""},
-	SnoExtension{"DungeonFinder", ""},
+	SnoExtension{"", ""},                 // 0x00
+	SnoExtension{"Actor", "acr"},         // 0x01
+	SnoExtension{"Adventure", "adv"},     // 0x02
+	SnoExtension{"", ""},                 // 0x03
+	SnoExtension{"", ""},                 // 0x04
+	SnoExtension{"AmbientSound", "ams"},  // 0x05
+	SnoExtension{"Anim", "ani"},          // 0x06
+	SnoExtension{"Anim2D", "an2"},        // 0x07
+	SnoExtension{"AnimSet", "ans"},       // 0x08
+	SnoExtension{"Appearance", "app"},    // 0x09
+	SnoExtension{"", ""},                 // 0x0A
+	SnoExtension{"Cloth", "clt"},         // 0x0B
+	SnoExtension{"Conversation", "cnv"},  // 0x0C
+	SnoExtension{"", ""},                 // 0x0D
+	SnoExtension{"EffectGroup", "efg"},   // 0x0E
+	SnoExtension{"Encounter", "enc"},     // 0x0F
+	SnoExtension{"", ""},                 // 0x10
+	SnoExtension{"Explosion", "xpl"},     // 0x11
+	SnoExtension{"", ""},                 // 0x12
+	SnoExtension{"Font", "fnt"},          // 0x13
+	SnoExtension{"GameBalance", "gam"},   // 0x14
+	SnoExtension{"Globals", "glo"},       // 0x15
+	SnoExtension{"LevelArea", "lvl"},     // 0x16
+	SnoExtension{"Light", "lit"},         // 0x17
+	SnoExtension{"MarkerSet", "mrk"},     // 0x18
+	SnoExtension{"Monster", "mon"},       // 0x19
+	SnoExtension{"Observer", "obs"},      // 0x1A
+	SnoExtension{"Particle", "prt"},      // 0x1B
+	SnoExtension{"Physics", "phy"},       // 0x1C
+	SnoExtension{"Power", "pow"},         // 0x1D
+	SnoExtension{"", ""},                 // 0x1E
+	SnoExtension{"Quest", "qst"},         // 0x1F
+	SnoExtension{"Rope", "rop"},          // 0x20
+	SnoExtension{"Scene", "scn"},         // 0x21
+	SnoExtension{"SceneGroup", "scg"},    // 0x22
+	SnoExtension{"", ""},                 // 0x23
+	SnoExtension{"ShaderMap", "shm"},     // 0x24
+	SnoExtension{"Shaders", "shd"},       // 0x25
+	SnoExtension{"Shakes", "shk"},        // 0x26
+	SnoExtension{"SkillKit", "skl"},      // 0x27
+	SnoExtension{"Sound", "snd"},         // 0x28
+	SnoExtension{"SoundBank", "sbk"},     // 0x29
+	SnoExtension{"StringList", "stl"},    // 0x2A
+	SnoExtension{"Surface", "srf"},       // 0x2B
+	SnoExtension{"Textures", "tex"},      // 0x2C
+	SnoExtension{"Trail", "trl"},         // 0x2D
+	SnoExtension{"UI", "ui"},             // 0x2E
+	SnoExtension{"Weather", "wth"},       // 0x2F
+	SnoExtension{"Worlds", "wrl"},        // 0x30
+	SnoExtension{"Recipe", "rcp"},        // 0x31
+	SnoExtension{"", ""},                 // 0x32
+	SnoExtension{"Condition", "cnd"},     // 0x33
+	SnoExtension{"", ""},                 // 0x34
+	SnoExtension{"", ""},                 // 0x35
+	SnoExtension{"", ""},                 // 0x36
+	SnoExtension{"", ""},                 // 0x37
+	SnoExtension{"Act", "act"},           // 0x38
+	SnoExtension{"Material", "mat"},      // 0x39
+	SnoExtension{"QuestRange", "qsr"},    // 0x3A
+	SnoExtension{"Lore", "lor"},          // 0x3B
+	SnoExtension{"Reverb", "rev"},        // 0x3C
+	SnoExtension{"PhysMesh", "phm"},      // 0x3D
+	SnoExtension{"Music", "mus"},         // 0x3E
+	SnoExtension{"Tutorial", "tut"},      // 0x3F
+	SnoExtension{"BossEncounter", "bos"}, // 0x40
+	SnoExtension{"", ""},                 // 0x41
+	SnoExtension{"Accolade", "aco"},      // 0x42
 }
 
 const snoGroupSize = 70
@@ -116,43 +119,38 @@ type CoreTocHeader struct {
 }
 
 type Root struct {
-	assetsEntries   map[string][]AssetEntry
-	assetIdxEntries map[string][]AssetIdxEntry
-	namedEntries    map[string][]NamedEntry
+	nameToContentHash map[string][]byte
 }
 
 func (r *Root) Files() ([]string, error) {
-	var names []string
-	for subdir, namedEntries := range r.namedEntries {
-		for _, namedEntry := range namedEntries {
-			names = append(names, subdir+"\\"+namedEntry.Filename)
-		}
+	names := []string{}
+	for name := range r.nameToContentHash {
+		names = append(names, name)
 	}
 	sort.Strings(names)
 	return names, nil
 }
 
 func (r *Root) ContentHash(filename string) ([]byte, error) {
-	return nil, errors.New("not implemented")
-	// contentHash, ok := r.lookup[filename]
-	// if !ok {
-	// 	return nil, errors.WithStack(fmt.Errorf("%s file name not found", filename))
-	// }
-	// return contentHash, nil
+	contentHash, ok := r.nameToContentHash[filename]
+	if !ok {
+		return nil, errors.WithStack(fmt.Errorf("%s file name not found", filename))
+	}
+	return contentHash, nil
 }
 
-func NewRoot(rootHash []byte, dataFromContentHashFn func(contentHash []byte) ([]byte, error)) (*Root, error) {
-	rootB, err := dataFromContentHashFn(rootHash)
+func NewRoot(rootHash []byte, fetchFn func(contentHash []byte) ([]byte, error)) (*Root, error) {
+	rootB, err := fetchFn(rootHash)
 	if err != nil {
 		return nil, err
 	}
 	r := bytes.NewReader(rootB)
-	var sig uint32
-	if err := binary.Read(r, binary.LittleEndian, &sig); err != nil {
+	var rootSig uint32
+	if err := binary.Read(r, binary.LittleEndian, &rootSig); err != nil {
 		return nil, errors.WithStack(err)
 	}
-	if sig != 0x8007D0C4 /* Diablo III */ {
-		return nil, errors.WithStack(fmt.Errorf("invalid Diablo III root signature %x", sig))
+	if rootSig != 0x8007D0C4 /* Diablo III */ {
+		return nil, errors.WithStack(fmt.Errorf("invalid Diablo III root signature %x", rootSig))
 	}
 
 	var namedEntriesCount uint32
@@ -188,11 +186,10 @@ func NewRoot(rootHash []byte, dataFromContentHashFn func(contentHash []byte) ([]
 			return nil, errors.WithStack(err)
 		}
 
-		dirB, err := dataFromContentHashFn(dirEntry.ContentHash[:])
+		dirB, err := fetchFn(dirEntry.ContentHash[:])
 		if err != nil {
-			// We fail silently because 'Mac' and 'Windows' dirEntry cannot be fetch.
-			// Also each language has a dirEntry that won't be referenced in the .idx if not installed.
-			fmt.Printf("failed fetching %s (%x)\n", dirEntry.Filename, dirEntry.ContentHash)
+			// 'Mac' and 'Windows' dirEntry cannot be fetch.
+			// Each language has a dirEntry that won't be referenced in the .idx if not installed.
 			continue
 		}
 		dirR := bytes.NewReader(dirB)
@@ -225,6 +222,7 @@ func NewRoot(rootHash []byte, dataFromContentHashFn func(contentHash []byte) ([]
 			if err := binary.Read(dirR, binary.LittleEndian, &assetEntry.SNOID); err != nil {
 				return nil, errors.WithStack(err)
 			}
+			assetsEntries[dirEntry.Filename] = append(assetsEntries[dirEntry.Filename], assetEntry)
 		}
 
 		var assetIdxCount uint32
@@ -242,6 +240,7 @@ func NewRoot(rootHash []byte, dataFromContentHashFn func(contentHash []byte) ([]
 			if err := binary.Read(dirR, binary.LittleEndian, &assetIdxEntry.FileIndex); err != nil {
 				return nil, errors.WithStack(err)
 			}
+			assetIdxEntries[dirEntry.Filename] = append(assetIdxEntries[dirEntry.Filename], assetIdxEntry)
 		}
 
 		var namedCount uint32
@@ -260,7 +259,9 @@ func NewRoot(rootHash []byte, dataFromContentHashFn func(contentHash []byte) ([]
 		}
 	}
 
+	//
 	// CoreTOC.dat
+	//
 
 	baseNamedEntries, ok := namedEntries["Base"]
 	if !ok {
@@ -275,7 +276,7 @@ func NewRoot(rootHash []byte, dataFromContentHashFn func(contentHash []byte) ([]
 	if coreTocEntry == (NamedEntry{}) {
 		return nil, errors.WithStack(errors.New("CoreTOC.dat not found"))
 	}
-	coreTocB, err := dataFromContentHashFn(coreTocEntry.ContentHash[:])
+	coreTocB, err := fetchFn(coreTocEntry.ContentHash[:])
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -284,22 +285,16 @@ func NewRoot(rootHash []byte, dataFromContentHashFn func(contentHash []byte) ([]
 	if err := binary.Read(coreTocR, binary.LittleEndian, &coreTocHeader); err != nil {
 		return nil, errors.WithStack(err)
 	}
-
-	fmt.Printf("coreTocHeader: %+v\n", coreTocHeader)
-
+	coreTocHeaderSize := uint32(unsafe.Sizeof(CoreTocHeader{}))
 	snoInfos := map[uint32]SnoInfo{}
 	for i := uint32(0); i < snoGroupSize; i++ {
 		if coreTocHeader.EntryCounts[i] == 0 {
 			continue
 		}
-		coreTocHeaderSize := int64(70*4*3 + 1)
-		if _, err := coreTocR.Seek(int64(coreTocHeader.EntryOffsets[i])+coreTocHeaderSize,
+		if _, err := coreTocR.Seek(int64(coreTocHeaderSize+coreTocHeader.EntryOffsets[i]),
 			io.SeekStart); err != nil {
 			return nil, errors.WithStack(err)
 		}
-
-		fmt.Printf("coreTocHeader.EntryCounts %d: %+v\n", i, coreTocHeader.EntryCounts[i])
-
 		for j := uint32(0); j < coreTocHeader.EntryCounts[i]; j++ {
 			var snoGroupID uint32 //index of SnoExtensions
 			if err := binary.Read(coreTocR, binary.LittleEndian, &snoGroupID); err != nil {
@@ -309,41 +304,123 @@ func NewRoot(rootHash []byte, dataFromContentHashFn func(contentHash []byte) ([]
 			if err := binary.Read(coreTocR, binary.LittleEndian, &snoID); err != nil {
 				return nil, errors.WithStack(err)
 			}
-			var namePos uint32
-			if err := binary.Read(coreTocR, binary.LittleEndian, &namePos); err != nil {
+			var nameOffset uint32
+			if err := binary.Read(coreTocR, binary.LittleEndian, &nameOffset); err != nil {
+				return nil, errors.WithStack(err)
+			}
+			//names are stored after all entries
+			currentPos := coreTocHeaderSize + coreTocHeader.EntryOffsets[i] + 4*3*j
+			nameOffset = coreTocHeaderSize + coreTocHeader.EntryOffsets[i] + 4*3*coreTocHeader.EntryCounts[i] + nameOffset
+			if _, err := coreTocR.Seek(int64(nameOffset), io.SeekStart); err != nil {
+				return nil, errors.WithStack(err)
+			}
+			var name string
+			if err := readAsciizFn(coreTocR, &name); err != nil {
+				return nil, err
+			}
+			if _, err := coreTocR.Seek(int64(currentPos), io.SeekStart); err != nil {
 				return nil, errors.WithStack(err)
 			}
 
-			//TODO retrieve name
-			name := "TODO"
-			// unk := make([]byte, namePos)
-			// if err := binary.Read(coreTocR, binary.LittleEndian, &unk); err != nil {
-			// 	return nil, errors.WithStack(err)
-			// }
-			// var name string
-			// if err := readAsciizFn(coreTocR, &name); err != nil {
-			// 	return nil, err
-			// }
-			if snoGroupID < 0 || snoGroupID >= uint32(len(SnoExtensions)) {
-				fmt.Printf("snoGroupID %d for id %d (%s) outside SnoExtensions(%d)\n", snoGroupID, snoID, name, len(SnoExtensions))
-				continue
-			}
-
 			snoInfos[snoID] = SnoInfo{
-				GroupID:      snoGroupID, //TODO needed?
-				SnoExtension: SnoExtensions[snoGroupID],
+				Filename:   name,
+				SnoGroupID: snoGroupID,
 			}
 		}
 	}
 
-	fmt.Printf("CoreTOC.dat:\n")
-	for id, snoInfo := range snoInfos {
-		fmt.Printf("%d %s (%s):\n", id, snoInfo.Name, snoInfo.Extension)
+	//
+	// Packages.dat
+	//
+
+	packagesEntry := NamedEntry{}
+	for _, namedEntry := range baseNamedEntries {
+		if namedEntry.Filename == "Data_D3\\PC\\Misc\\Packages.dat" {
+			packagesEntry = namedEntry
+		}
+	}
+	if packagesEntry == (NamedEntry{}) {
+		return nil, errors.WithStack(errors.New("Data_D3\\PC\\Misc\\Packages.dat not found"))
+	}
+	packagesB, err := fetchFn(packagesEntry.ContentHash[:])
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	packagesR := bytes.NewReader(packagesB)
+	var sig uint32
+	if err := binary.Read(packagesR, binary.LittleEndian, &sig); err != nil {
+		return nil, errors.WithStack(err)
+	}
+	if sig != 0xAABB0002 {
+		return nil, errors.WithStack(fmt.Errorf("invalid Data_D3\\PC\\Misc\\Packages.dat signature %x", sig))
+	}
+	nameToExt := map[string]string{}
+	var namesCount uint32
+	if err := binary.Read(packagesR, binary.LittleEndian, &namesCount); err != nil {
+		return nil, errors.WithStack(err)
+	}
+	for i := uint32(0); i < namesCount; i++ {
+		var name string
+		if err := readAsciizFn(packagesR, &name); err != nil {
+			return nil, errors.WithStack(err)
+		}
+		if len(name) < 4 {
+			return nil, errors.WithStack(errors.New("invalid name length"))
+		}
+		nameToExt[name[:len(name)-4]] = path.Ext(name)
 	}
 
-	return &Root{
-		assetsEntries,
-		assetIdxEntries,
-		namedEntries,
-	}, nil
+	//
+	// Compure names to hash
+	//
+
+	namePartsFn := func(snoID uint32) (filename, extension, extensionName string) {
+		snoInfo, ok := snoInfos[snoID]
+		if !ok {
+			return
+		}
+		filename = snoInfo.Filename
+		if snoInfo.SnoGroupID >= 0 && int(snoInfo.SnoGroupID) < len(SnoExtensions) {
+			extension = SnoExtensions[snoInfo.SnoGroupID].Extension
+			extensionName = SnoExtensions[snoInfo.SnoGroupID].Name
+		} else {
+			//extension not found, generate a random one
+			ext := []rune{
+				rune('0') + rune(snoInfo.SnoGroupID/10),
+				rune('0') + rune(snoInfo.SnoGroupID%10),
+			}
+			extension = fmt.Sprintf("a%s", string(ext))
+			extensionName = fmt.Sprintf("Asset%s", string(ext))
+		}
+		return
+	}
+	nameToContentHash := map[string][]byte{}
+	for subdir, assetEntries := range assetsEntries {
+		for _, assetEntry := range assetEntries {
+			filename, extension, extensionName := namePartsFn(assetEntry.SNOID)
+			if filename == "" {
+				continue
+			}
+			name := fmt.Sprintf("%s\\%s\\%s.%s", subdir, extensionName, filename, extension)
+			nameToContentHash[name] = assetEntry.ContentHash[:]
+		}
+	}
+	for subdir, assetIdxEntries := range assetIdxEntries {
+		for _, assetIdxEntry := range assetIdxEntries {
+			filename, extension, extensionName := namePartsFn(assetIdxEntry.SNOID)
+			if filename == "" {
+				continue
+			}
+			name := fmt.Sprintf("%s\\%s\\%s\\%04d.%s", subdir, extensionName, filename, assetIdxEntry.FileIndex, extension)
+			nameToContentHash[name] = assetIdxEntry.ContentHash[:]
+		}
+	}
+	for subdir, namedEntries := range namedEntries {
+		for _, namedEntry := range namedEntries {
+			name := fmt.Sprintf("%s\\%s", subdir, namedEntry.Filename)
+			nameToContentHash[name] = namedEntry.ContentHash[:]
+		}
+	}
+
+	return &Root{nameToContentHash}, nil
 }

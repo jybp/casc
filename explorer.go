@@ -78,12 +78,18 @@ func newExplorer(storage Storage) (*Explorer, error) {
 	return &Explorer{storage, root}, err
 }
 
+// App returns the game code
+func (e Explorer) App() string {
+	return e.storage.App()
+}
+
 // Version returns the version of the game on the given region.
 func (e Explorer) Version() string {
 	return e.storage.Version()
 }
 
 // Files enumerates all files.
+// The separator within the filenames is '\'.
 func (e Explorer) Files() ([]string, error) {
 	return e.root.Files()
 }

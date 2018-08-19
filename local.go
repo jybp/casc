@@ -8,7 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"sort"
 	"strconv"
 
@@ -36,10 +36,10 @@ func newLocalStorage(installDir string) (*local, error) {
 			"Diablo III": Diablo3,
 		}
 		for binary, app := range binaryToApp {
-			if _, err := os.Stat(path.Join(installDir, binary+".exe")); err == nil {
+			if _, err := os.Stat(filepath.Join(installDir, binary+".exe")); err == nil {
 				return app, nil
 			}
-			if _, err := os.Stat(path.Join(installDir, binary+".app")); err == nil {
+			if _, err := os.Stat(filepath.Join(installDir, binary+".app")); err == nil {
 				return app, nil
 			}
 		}
@@ -54,7 +54,7 @@ func newLocalStorage(installDir string) (*local, error) {
 	// Set versionName
 	//
 
-	buildInfoB, err := ioutil.ReadFile(path.Join(installDir, ".build.info"))
+	buildInfoB, err := ioutil.ReadFile(filepath.Join(installDir, ".build.info"))
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -76,7 +76,7 @@ func newLocalStorage(installDir string) (*local, error) {
 	//
 
 	buildConfigHash := hex.EncodeToString(version.BuildConfigHash)
-	buildConfigB, err := ioutil.ReadFile(path.Join(installDir,
+	buildConfigB, err := ioutil.ReadFile(filepath.Join(installDir,
 		"Data",
 		common.PathTypeConfig,
 		buildConfigHash[0:2],
@@ -95,7 +95,7 @@ func newLocalStorage(installDir string) (*local, error) {
 	//
 
 	// Load all indices
-	files, err := ioutil.ReadDir(path.Join(installDir, "Data", "data"))
+	files, err := ioutil.ReadDir(filepath.Join(installDir, "Data", "data"))
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -112,7 +112,7 @@ func newLocalStorage(installDir string) (*local, error) {
 		if name[len(name)-4:] != ".idx" {
 			continue
 		}
-		f, err := os.Open(path.Join(installDir, "Data", "data", name))
+		f, err := os.Open(filepath.Join(installDir, "Data", "data", name))
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
@@ -139,7 +139,7 @@ func newLocalStorage(installDir string) (*local, error) {
 
 	findIdxFn := func(hash []byte, idxs []common.IdxEntry) (common.IdxEntry, error) {
 		foundIdx := common.IdxEntry{}
-		for i, idx := range idxs {
+		for _, idx := range idxs {
 			keyLen := len(idx.Key)
 			hashLen := len(hash)
 			shift := hashLen - keyLen
@@ -149,7 +149,6 @@ func newLocalStorage(installDir string) (*local, error) {
 			h := hash[:len(hash)-shift]
 			if bytes.Compare(h, idx.Key) == 0 {
 				foundIdx = idx
-				fmt.Printf("looking for %x\nfound (entry n°%d/%d):%+v\n", hash, i, len(idxs), foundIdx)
 				break
 			}
 		}
@@ -172,7 +171,7 @@ func newLocalStorage(installDir string) (*local, error) {
 		if err != nil {
 			return nil, err
 		}
-		dataFilename := path.Join(installDir, "Data", "data", "data."+fmt.Sprintf("%03d", idx.Index))
+		dataFilename := filepath.Join(installDir, "Data", "data", "data."+fmt.Sprintf("%03d", idx.Index))
 		f, err := os.Open(dataFilename)
 		if err != nil {
 			return nil, errors.WithStack(err)
