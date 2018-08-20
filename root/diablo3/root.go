@@ -7,6 +7,7 @@ import (
 	"io"
 	"path"
 	"sort"
+	"strings"
 	"unsafe"
 
 	"github.com/pkg/errors"
@@ -144,125 +145,32 @@ func NewRoot(rootHash []byte, fetchFn func(contentHash []byte) ([]byte, error)) 
 	if err != nil {
 		return nil, err
 	}
-	r := bytes.NewReader(rootB)
-	var rootSig uint32
-	if err := binary.Read(r, binary.LittleEndian, &rootSig); err != nil {
-		return nil, errors.WithStack(err)
+	dirEntries, err := parseRoot(bytes.NewReader(rootB))
+	if err != nil {
+		return nil, err
 	}
-	if rootSig != 0x8007D0C4 /* Diablo III */ {
-		return nil, errors.WithStack(fmt.Errorf("invalid Diablo III root signature %x", rootSig))
-	}
-
-	var namedEntriesCount uint32
-	if err := binary.Read(r, binary.LittleEndian, &namedEntriesCount); err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	readAsciizFn := func(r io.Reader, dest *string) error {
-		buf := bytes.NewBufferString("")
-		for {
-			var c byte
-			if err := binary.Read(r, binary.LittleEndian, &c); err != nil {
-				return errors.WithStack(err)
-			}
-			if c == 0 { //ASCIIZ
-				break
-			}
-			buf.WriteByte(c)
-		}
-		*dest = buf.String()
-		return nil
-	}
-
-	assetsEntries := map[string][]AssetEntry{}
+	assetEntries := map[string][]AssetEntry{}
 	assetIdxEntries := map[string][]AssetIdxEntry{}
 	namedEntries := map[string][]NamedEntry{}
-	for i := uint32(0); i < namedEntriesCount; i++ {
-		dirEntry := NamedEntry{}
-		if err := binary.Read(r, binary.LittleEndian, &dirEntry.ContentHash); err != nil {
-			return nil, errors.WithStack(err)
-		}
-		if err := readAsciizFn(r, &dirEntry.Filename); err != nil {
-			return nil, errors.WithStack(err)
-		}
-
+	for _, dirEntry := range dirEntries {
 		dirB, err := fetchFn(dirEntry.ContentHash[:])
 		if err != nil {
 			// 'Mac' and 'Windows' dirEntry cannot be fetch.
 			// Each language has a dirEntry that won't be referenced in the .idx if not installed.
 			continue
 		}
-		dirR := bytes.NewReader(dirB)
-
-		// sig uint32
-		// number of AssetEntry uint32
-		// []AssetEntry
-		// number of AssetIdxEntry uint32
-		// []AssetIdxEntry
-		// number of NamedEntry uint32
-		// []NamedEntry
-
-		var sig uint32
-		if err := binary.Read(dirR, binary.LittleEndian, &sig); err != nil {
-			return nil, errors.WithStack(err)
+		assets, assetIdxs, nameds, err := parseRootDirectory(bytes.NewReader(dirB))
+		if err != nil {
+			return nil, err
 		}
-		if sig != 0xeaf1fe87 {
-			return nil, errors.WithStack(errors.New("unexpected subdir signature"))
-		}
-
-		var assetCount uint32
-		if err := binary.Read(dirR, binary.LittleEndian, &assetCount); err != nil {
-			return nil, errors.WithStack(err)
-		}
-		for i := uint32(0); i < assetCount; i++ {
-			assetEntry := AssetEntry{}
-			if err := binary.Read(dirR, binary.LittleEndian, &assetEntry.ContentHash); err != nil {
-				return nil, errors.WithStack(err)
-			}
-			if err := binary.Read(dirR, binary.LittleEndian, &assetEntry.SNOID); err != nil {
-				return nil, errors.WithStack(err)
-			}
-			assetsEntries[dirEntry.Filename] = append(assetsEntries[dirEntry.Filename], assetEntry)
-		}
-
-		var assetIdxCount uint32
-		if err := binary.Read(dirR, binary.LittleEndian, &assetIdxCount); err != nil {
-			return nil, errors.WithStack(err)
-		}
-		for i := uint32(0); i < assetIdxCount; i++ {
-			assetIdxEntry := AssetIdxEntry{}
-			if err := binary.Read(dirR, binary.LittleEndian, &assetIdxEntry.ContentHash); err != nil {
-				return nil, errors.WithStack(err)
-			}
-			if err := binary.Read(dirR, binary.LittleEndian, &assetIdxEntry.SNOID); err != nil {
-				return nil, errors.WithStack(err)
-			}
-			if err := binary.Read(dirR, binary.LittleEndian, &assetIdxEntry.FileIndex); err != nil {
-				return nil, errors.WithStack(err)
-			}
-			assetIdxEntries[dirEntry.Filename] = append(assetIdxEntries[dirEntry.Filename], assetIdxEntry)
-		}
-
-		var namedCount uint32
-		if err := binary.Read(dirR, binary.LittleEndian, &namedCount); err != nil {
-			return nil, errors.WithStack(err)
-		}
-		for i := uint32(0); i < namedCount; i++ {
-			namedEntry := NamedEntry{}
-			if err := binary.Read(dirR, binary.LittleEndian, &namedEntry.ContentHash); err != nil {
-				return nil, errors.WithStack(err)
-			}
-			if err := readAsciizFn(dirR, &namedEntry.Filename); err != nil {
-				return nil, errors.WithStack(err)
-			}
-			namedEntries[dirEntry.Filename] = append(namedEntries[dirEntry.Filename], namedEntry)
-		}
+		assetEntries[dirEntry.Filename] = assets
+		assetIdxEntries[dirEntry.Filename] = assetIdxs
+		namedEntries[dirEntry.Filename] = nameds
 	}
 
 	//
 	// CoreTOC.dat
 	//
-
 	baseNamedEntries, ok := namedEntries["Base"]
 	if !ok {
 		return nil, errors.WithStack(errors.New("Base not found"))
@@ -280,7 +188,200 @@ func NewRoot(rootHash []byte, fetchFn func(contentHash []byte) ([]byte, error)) 
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	coreTocR := bytes.NewReader(coreTocB)
+	snoInfos, err := parseCoreToc(bytes.NewReader(coreTocB))
+	if err != nil {
+		return nil, err
+	}
+
+	//
+	// Packages.dat
+	//
+
+	packagesEntry := NamedEntry{}
+	for _, namedEntry := range baseNamedEntries {
+		if namedEntry.Filename == "Data_D3\\PC\\Misc\\Packages.dat" {
+			packagesEntry = namedEntry
+		}
+	}
+	if packagesEntry == (NamedEntry{}) {
+		return nil, errors.WithStack(errors.New("Data_D3\\PC\\Misc\\Packages.dat not found"))
+	}
+	packagesB, err := fetchFn(packagesEntry.ContentHash[:])
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	nameToExt, err := parsePackages(bytes.NewReader(packagesB))
+	if err != nil {
+		return nil, err
+	}
+
+	//
+	// Compure names to hash
+	//
+
+	namePartsFn := func(snoID uint32) (filename, extension, extensionName string) {
+		snoInfo, ok := snoInfos[snoID]
+		if !ok {
+			return
+		}
+		filename = snoInfo.Filename
+		if snoInfo.SnoGroupID >= 0 && int(snoInfo.SnoGroupID) < len(SnoExtensions) {
+			extension = SnoExtensions[snoInfo.SnoGroupID].Extension
+			extensionName = SnoExtensions[snoInfo.SnoGroupID].Name
+		} else {
+			//extension not found in snoInfo, generate a random one
+			ext := []rune{
+				rune('0') + rune(snoInfo.SnoGroupID/10),
+				rune('0') + rune(snoInfo.SnoGroupID%10),
+			}
+			extension = fmt.Sprintf("a%s", string(ext))
+			extensionName = fmt.Sprintf("Asset%s", string(ext))
+		}
+		return
+	}
+	nameToContentHash := map[string][]byte{}
+	for subdir, assetEntries := range assetEntries {
+		for _, assetEntry := range assetEntries {
+			filename, extension, extensionName := namePartsFn(assetEntry.SNOID)
+			if filename == "" {
+				continue
+			}
+			name := fmt.Sprintf("%s\\%s\\%s.%s", subdir, extensionName, filename, extension)
+			nameToContentHash[name] = assetEntry.ContentHash[:]
+		}
+	}
+	for subdir, assetIdxEntries := range assetIdxEntries {
+		for _, assetIdxEntry := range assetIdxEntries {
+			filename, extension, extensionName := namePartsFn(assetIdxEntry.SNOID)
+			if filename == "" {
+				continue
+			}
+			//Packages.dat might contain the real extension of assetIdxEntry.
+			namewithoutDirAndExt := fmt.Sprintf("%s\\%s\\%04d", extensionName, filename, assetIdxEntry.FileIndex)
+			realExtension, ok := nameToExt[namewithoutDirAndExt]
+			if ok {
+				extension = strings.TrimLeft(realExtension, ".")
+			}
+			name := fmt.Sprintf("%s\\%s.%s", subdir, namewithoutDirAndExt, extension)
+			nameToContentHash[name] = assetIdxEntry.ContentHash[:]
+		}
+	}
+	for subdir, namedEntries := range namedEntries {
+		for _, namedEntry := range namedEntries {
+			name := fmt.Sprintf("%s\\%s", subdir, namedEntry.Filename)
+			nameToContentHash[name] = namedEntry.ContentHash[:]
+		}
+	}
+	return &Root{nameToContentHash}, nil
+}
+
+func readAsciiz(r io.Reader, dest *string) error {
+	buf := bytes.NewBufferString("")
+	for {
+		var c byte
+		if err := binary.Read(r, binary.LittleEndian, &c); err != nil {
+			return errors.WithStack(err)
+		}
+		if c == 0 { //ASCIIZ
+			break
+		}
+		buf.WriteByte(c)
+	}
+	*dest = buf.String()
+	return nil
+}
+
+func parseRoot(r io.Reader) ([]NamedEntry, error) {
+	var rootSig uint32
+	if err := binary.Read(r, binary.LittleEndian, &rootSig); err != nil {
+		return nil, errors.WithStack(err)
+	}
+	if rootSig != 0x8007D0C4 /* Diablo III */ {
+		return nil, errors.WithStack(fmt.Errorf("invalid Diablo III root signature %x", rootSig))
+	}
+	var namedEntriesCount uint32
+	if err := binary.Read(r, binary.LittleEndian, &namedEntriesCount); err != nil {
+		return nil, errors.WithStack(err)
+	}
+	namedEntries := []NamedEntry{}
+	for i := uint32(0); i < namedEntriesCount; i++ {
+		namedEntry := NamedEntry{}
+		if err := binary.Read(r, binary.LittleEndian, &namedEntry.ContentHash); err != nil {
+			return nil, errors.WithStack(err)
+		}
+		if err := readAsciiz(r, &namedEntry.Filename); err != nil {
+			return nil, errors.WithStack(err)
+		}
+		namedEntries = append(namedEntries, namedEntry)
+	}
+	return namedEntries, nil
+}
+
+func parseRootDirectory(dirR io.Reader) (
+	[]AssetEntry,
+	[]AssetIdxEntry,
+	[]NamedEntry,
+	error,
+) {
+	var sig uint32
+	if err := binary.Read(dirR, binary.LittleEndian, &sig); err != nil {
+		return nil, nil, nil, errors.WithStack(err)
+	}
+	if sig != 0xeaf1fe87 {
+		return nil, nil, nil, errors.WithStack(errors.New("unexpected dir signature"))
+	}
+	assetEntries := []AssetEntry{}
+	var assetCount uint32
+	if err := binary.Read(dirR, binary.LittleEndian, &assetCount); err != nil {
+		return nil, nil, nil, errors.WithStack(err)
+	}
+	for i := uint32(0); i < assetCount; i++ {
+		assetEntry := AssetEntry{}
+		if err := binary.Read(dirR, binary.LittleEndian, &assetEntry.ContentHash); err != nil {
+			return nil, nil, nil, errors.WithStack(err)
+		}
+		if err := binary.Read(dirR, binary.LittleEndian, &assetEntry.SNOID); err != nil {
+			return nil, nil, nil, errors.WithStack(err)
+		}
+		assetEntries = append(assetEntries, assetEntry)
+	}
+	assetIdxEntries := []AssetIdxEntry{}
+	var assetIdxCount uint32
+	if err := binary.Read(dirR, binary.LittleEndian, &assetIdxCount); err != nil {
+		return nil, nil, nil, errors.WithStack(err)
+	}
+	for i := uint32(0); i < assetIdxCount; i++ {
+		assetIdxEntry := AssetIdxEntry{}
+		if err := binary.Read(dirR, binary.LittleEndian, &assetIdxEntry.ContentHash); err != nil {
+			return nil, nil, nil, errors.WithStack(err)
+		}
+		if err := binary.Read(dirR, binary.LittleEndian, &assetIdxEntry.SNOID); err != nil {
+			return nil, nil, nil, errors.WithStack(err)
+		}
+		if err := binary.Read(dirR, binary.LittleEndian, &assetIdxEntry.FileIndex); err != nil {
+			return nil, nil, nil, errors.WithStack(err)
+		}
+		assetIdxEntries = append(assetIdxEntries, assetIdxEntry)
+	}
+	namedEntries := []NamedEntry{}
+	var namedCount uint32
+	if err := binary.Read(dirR, binary.LittleEndian, &namedCount); err != nil {
+		return nil, nil, nil, errors.WithStack(err)
+	}
+	for i := uint32(0); i < namedCount; i++ {
+		namedEntry := NamedEntry{}
+		if err := binary.Read(dirR, binary.LittleEndian, &namedEntry.ContentHash); err != nil {
+			return nil, nil, nil, errors.WithStack(err)
+		}
+		if err := readAsciiz(dirR, &namedEntry.Filename); err != nil {
+			return nil, nil, nil, errors.WithStack(err)
+		}
+		namedEntries = append(namedEntries, namedEntry)
+	}
+	return assetEntries, assetIdxEntries, namedEntries, nil
+}
+
+func parseCoreToc(coreTocR io.ReadSeeker) (map[uint32]SnoInfo, error) {
 	coreTocHeader := CoreTocHeader{}
 	if err := binary.Read(coreTocR, binary.LittleEndian, &coreTocHeader); err != nil {
 		return nil, errors.WithStack(err)
@@ -315,7 +416,7 @@ func NewRoot(rootHash []byte, fetchFn func(contentHash []byte) ([]byte, error)) 
 				return nil, errors.WithStack(err)
 			}
 			var name string
-			if err := readAsciizFn(coreTocR, &name); err != nil {
+			if err := readAsciiz(coreTocR, &name); err != nil {
 				return nil, err
 			}
 			if _, err := coreTocR.Seek(int64(currentPos), io.SeekStart); err != nil {
@@ -328,25 +429,10 @@ func NewRoot(rootHash []byte, fetchFn func(contentHash []byte) ([]byte, error)) 
 			}
 		}
 	}
+	return snoInfos, nil
+}
 
-	//
-	// Packages.dat
-	//
-
-	packagesEntry := NamedEntry{}
-	for _, namedEntry := range baseNamedEntries {
-		if namedEntry.Filename == "Data_D3\\PC\\Misc\\Packages.dat" {
-			packagesEntry = namedEntry
-		}
-	}
-	if packagesEntry == (NamedEntry{}) {
-		return nil, errors.WithStack(errors.New("Data_D3\\PC\\Misc\\Packages.dat not found"))
-	}
-	packagesB, err := fetchFn(packagesEntry.ContentHash[:])
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-	packagesR := bytes.NewReader(packagesB)
+func parsePackages(packagesR io.Reader) (map[string]string, error) {
 	var sig uint32
 	if err := binary.Read(packagesR, binary.LittleEndian, &sig); err != nil {
 		return nil, errors.WithStack(err)
@@ -361,7 +447,7 @@ func NewRoot(rootHash []byte, fetchFn func(contentHash []byte) ([]byte, error)) 
 	}
 	for i := uint32(0); i < namesCount; i++ {
 		var name string
-		if err := readAsciizFn(packagesR, &name); err != nil {
+		if err := readAsciiz(packagesR, &name); err != nil {
 			return nil, errors.WithStack(err)
 		}
 		if len(name) < 4 {
@@ -369,58 +455,5 @@ func NewRoot(rootHash []byte, fetchFn func(contentHash []byte) ([]byte, error)) 
 		}
 		nameToExt[name[:len(name)-4]] = path.Ext(name)
 	}
-
-	//
-	// Compure names to hash
-	//
-
-	namePartsFn := func(snoID uint32) (filename, extension, extensionName string) {
-		snoInfo, ok := snoInfos[snoID]
-		if !ok {
-			return
-		}
-		filename = snoInfo.Filename
-		if snoInfo.SnoGroupID >= 0 && int(snoInfo.SnoGroupID) < len(SnoExtensions) {
-			extension = SnoExtensions[snoInfo.SnoGroupID].Extension
-			extensionName = SnoExtensions[snoInfo.SnoGroupID].Name
-		} else {
-			//extension not found, generate a random one
-			ext := []rune{
-				rune('0') + rune(snoInfo.SnoGroupID/10),
-				rune('0') + rune(snoInfo.SnoGroupID%10),
-			}
-			extension = fmt.Sprintf("a%s", string(ext))
-			extensionName = fmt.Sprintf("Asset%s", string(ext))
-		}
-		return
-	}
-	nameToContentHash := map[string][]byte{}
-	for subdir, assetEntries := range assetsEntries {
-		for _, assetEntry := range assetEntries {
-			filename, extension, extensionName := namePartsFn(assetEntry.SNOID)
-			if filename == "" {
-				continue
-			}
-			name := fmt.Sprintf("%s\\%s\\%s.%s", subdir, extensionName, filename, extension)
-			nameToContentHash[name] = assetEntry.ContentHash[:]
-		}
-	}
-	for subdir, assetIdxEntries := range assetIdxEntries {
-		for _, assetIdxEntry := range assetIdxEntries {
-			filename, extension, extensionName := namePartsFn(assetIdxEntry.SNOID)
-			if filename == "" {
-				continue
-			}
-			name := fmt.Sprintf("%s\\%s\\%s\\%04d.%s", subdir, extensionName, filename, assetIdxEntry.FileIndex, extension)
-			nameToContentHash[name] = assetIdxEntry.ContentHash[:]
-		}
-	}
-	for subdir, namedEntries := range namedEntries {
-		for _, namedEntry := range namedEntries {
-			name := fmt.Sprintf("%s\\%s", subdir, namedEntry.Filename)
-			nameToContentHash[name] = namedEntry.ContentHash[:]
-		}
-	}
-
-	return &Root{nameToContentHash}, nil
+	return nameToExt, nil
 }

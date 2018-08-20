@@ -76,6 +76,8 @@ func main() {
 		return
 	}
 	filesCount := len(filenames)
+	fmt.Printf("%d files\n", filesCount)
+	return
 	resultDir := "online"
 	if installDir != "" {
 		resultDir = "local"
@@ -100,6 +102,9 @@ func main() {
 				continue
 			}
 		}
+		//TODO online: all files have 0kb size...
+		//local: files seem to have the wrong size compared to casclib (a lot of 6kb)
+
 		if err := ioutil.WriteFile(fullname, b, 0666); err != nil {
 			fmt.Printf("cannot write file %s: %s\n", fullname, err.Error())
 			continue
