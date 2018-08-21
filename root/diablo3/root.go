@@ -41,7 +41,7 @@ type SnoInfo struct {
 
 // SnoExtensions relates arbitrary friendly names => extension
 var SnoExtensions = []SnoExtension{
-	SnoExtension{"", ""},                 // 0x00
+	SnoExtension{"", ""},                 // 0x00 Index matters
 	SnoExtension{"Actor", "acr"},         // 0x01
 	SnoExtension{"Adventure", "adv"},     // 0x02
 	SnoExtension{"", ""},                 // 0x03
@@ -120,7 +120,7 @@ type CoreTocHeader struct {
 }
 
 type Root struct {
-	nameToContentHash map[string][]byte
+	nameToContentHash map[string][0x10]uint8
 }
 
 func (r *Root) Files() ([]string, error) {
@@ -137,7 +137,7 @@ func (r *Root) ContentHash(filename string) ([]byte, error) {
 	if !ok {
 		return nil, errors.WithStack(fmt.Errorf("%s file name not found", filename))
 	}
-	return contentHash, nil
+	return contentHash[:], nil
 }
 
 func NewRoot(rootHash []byte, fetchFn func(contentHash []byte) ([]byte, error)) (*Root, error) {
@@ -149,9 +149,9 @@ func NewRoot(rootHash []byte, fetchFn func(contentHash []byte) ([]byte, error)) 
 	if err != nil {
 		return nil, err
 	}
-	assetEntries := map[string][]AssetEntry{}
-	assetIdxEntries := map[string][]AssetIdxEntry{}
-	namedEntries := map[string][]NamedEntry{}
+	assetEntriesByDir := map[string][]AssetEntry{}
+	assetIdxEntriesByDir := map[string][]AssetIdxEntry{}
+	namedEntriesByDir := map[string][]NamedEntry{}
 	for _, dirEntry := range dirEntries {
 		dirB, err := fetchFn(dirEntry.ContentHash[:])
 		if err != nil {
@@ -163,15 +163,15 @@ func NewRoot(rootHash []byte, fetchFn func(contentHash []byte) ([]byte, error)) 
 		if err != nil {
 			return nil, err
 		}
-		assetEntries[dirEntry.Filename] = assets
-		assetIdxEntries[dirEntry.Filename] = assetIdxs
-		namedEntries[dirEntry.Filename] = nameds
+		assetEntriesByDir[dirEntry.Filename] = assets
+		assetIdxEntriesByDir[dirEntry.Filename] = assetIdxs
+		namedEntriesByDir[dirEntry.Filename] = nameds
 	}
 
 	//
 	// CoreTOC.dat
 	//
-	baseNamedEntries, ok := namedEntries["Base"]
+	baseNamedEntries, ok := namedEntriesByDir["Base"]
 	if !ok {
 		return nil, errors.WithStack(errors.New("Base not found"))
 	}
@@ -196,7 +196,6 @@ func NewRoot(rootHash []byte, fetchFn func(contentHash []byte) ([]byte, error)) 
 	//
 	// Packages.dat
 	//
-
 	packagesEntry := NamedEntry{}
 	for _, namedEntry := range baseNamedEntries {
 		if namedEntry.Filename == "Data_D3\\PC\\Misc\\Packages.dat" {
@@ -218,7 +217,6 @@ func NewRoot(rootHash []byte, fetchFn func(contentHash []byte) ([]byte, error)) 
 	//
 	// Compure names to hash
 	//
-
 	namePartsFn := func(snoID uint32) (filename, extension, extensionName string) {
 		snoInfo, ok := snoInfos[snoID]
 		if !ok {
@@ -239,18 +237,18 @@ func NewRoot(rootHash []byte, fetchFn func(contentHash []byte) ([]byte, error)) 
 		}
 		return
 	}
-	nameToContentHash := map[string][]byte{}
-	for subdir, assetEntries := range assetEntries {
+	nameToContentHash := map[string][0x10]byte{}
+	for subdir, assetEntries := range assetEntriesByDir {
 		for _, assetEntry := range assetEntries {
 			filename, extension, extensionName := namePartsFn(assetEntry.SNOID)
 			if filename == "" {
 				continue
 			}
 			name := fmt.Sprintf("%s\\%s\\%s.%s", subdir, extensionName, filename, extension)
-			nameToContentHash[name] = assetEntry.ContentHash[:]
+			nameToContentHash[name] = assetEntry.ContentHash
 		}
 	}
-	for subdir, assetIdxEntries := range assetIdxEntries {
+	for subdir, assetIdxEntries := range assetIdxEntriesByDir {
 		for _, assetIdxEntry := range assetIdxEntries {
 			filename, extension, extensionName := namePartsFn(assetIdxEntry.SNOID)
 			if filename == "" {
@@ -263,13 +261,13 @@ func NewRoot(rootHash []byte, fetchFn func(contentHash []byte) ([]byte, error)) 
 				extension = strings.TrimLeft(realExtension, ".")
 			}
 			name := fmt.Sprintf("%s\\%s.%s", subdir, namewithoutDirAndExt, extension)
-			nameToContentHash[name] = assetIdxEntry.ContentHash[:]
+			nameToContentHash[name] = assetIdxEntry.ContentHash
 		}
 	}
-	for subdir, namedEntries := range namedEntries {
+	for subdir, namedEntries := range namedEntriesByDir {
 		for _, namedEntry := range namedEntries {
 			name := fmt.Sprintf("%s\\%s", subdir, namedEntry.Filename)
-			nameToContentHash[name] = namedEntry.ContentHash[:]
+			nameToContentHash[name] = namedEntry.ContentHash
 		}
 	}
 	return &Root{nameToContentHash}, nil

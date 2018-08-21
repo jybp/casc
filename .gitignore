@@ -16,6 +16,8 @@
 blte/test_decoded
 blte/test_encoded
 
+.vscode
+cache
 doc
 blte
 !blte/
@@ -23,4 +25,5 @@ casc-explorer
 !casc-explorer/
 local
 online
+casclib
 *.log

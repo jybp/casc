@@ -76,22 +76,20 @@ func main() {
 		return
 	}
 	filesCount := len(filenames)
-	fmt.Printf("%d files\n", filesCount)
-	return
+
 	resultDir := "online"
 	if installDir != "" {
 		resultDir = "local"
 	}
-	for i, filename := range filenames {
-		if i%1000 == 0 {
-			fmt.Printf("progress %d/%d\n", i, filesCount)
-		}
-		if !strings.HasPrefix(filename, "Base\\Music\\") {
+	extracted := 0
+	for _, filename := range filenames {
+		if !strings.HasSuffix(filename, ".ogv") {
 			continue
 		}
 		b, err := explorer.Extract(filename)
 		if err != nil {
 			fmt.Printf("cannot extract %s: %s\n", filename, err.Error())
+			continue
 		}
 		filename = strings.Replace(filename, "\\", string(filepath.Separator), -1)
 		fullname := filepath.Join(resultDir, explorer.App(), explorer.Version(), filename)
@@ -102,13 +100,11 @@ func main() {
 				continue
 			}
 		}
-		//TODO online: all files have 0kb size...
-		//local: files seem to have the wrong size compared to casclib (a lot of 6kb)
-
 		if err := ioutil.WriteFile(fullname, b, 0666); err != nil {
 			fmt.Printf("cannot write file %s: %s\n", fullname, err.Error())
 			continue
 		}
+		extracted++
 	}
-	fmt.Printf("%d entries\n", filesCount)
+	fmt.Printf("%d extracted from %d files\n", extracted, filesCount)
 }
