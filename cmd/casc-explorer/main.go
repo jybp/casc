@@ -2,7 +2,7 @@
 casc-explorer explore CASC files from the command-line.
 Usage:
 	casc-explorer (-dir <install-dir> | -app <app> [-cache <cache-dir>] [-region <region>] [-cdn <cdn>]) [-v]
-Examples
+Examples:
 	casc-explorer -app d3 -region eu -cdn eu -cache /tmp/casc
 	casc-explorer -dir /Applications/Diablo III/
 */
@@ -19,7 +19,16 @@ import (
 	"time"
 
 	"github.com/jybp/casc"
+	"github.com/jybp/httpcache"
+	"github.com/jybp/httpcache/disk"
 )
+
+type logTransport struct{}
+
+func (logTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	fmt.Printf("http call (%s) %s\n", r.Method, r.URL)
+	return http.DefaultTransport.RoundTrip(r)
+}
 
 func main() {
 	defer func(start time.Time) { fmt.Printf("%s\n", time.Since(start)) }(time.Now())
@@ -55,11 +64,12 @@ func main() {
 			fmt.Printf("online with app: %s, region: %s, cdn region: %s, cache dir: %s\n",
 				app, region, cdn, cacheDir)
 		}
-
-		client := &http.Client{Transport: &Transport{
-			Dir:       cacheDir,
+		client := &http.Client{Transport: &httpcache.Transport{
 			Transport: transport,
-			Filter:    filter,
+			Filter: func(r *http.Request) bool {
+				return strings.Contains(r.URL.String(), "patch.battle.net")
+			},
+			Cache: disk.Cache{Dir: cacheDir},
 		}}
 		var err error
 		explorer, err = casc.NewOnlineExplorer(app, region, cdn, client)
@@ -81,27 +91,33 @@ func main() {
 	if installDir != "" {
 		resultDir = "local"
 	}
-	extracted := 0
+	dir := filepath.Join("", resultDir, explorer.App(), explorer.Version())
+	if _, err := os.Stat(dir); err != nil {
+		if err := os.MkdirAll(dir, 0777); err != nil {
+			fmt.Printf("cannot create dir %s: %s\n", dir, err.Error())
+			return
+		}
+	}
+	extracted := 1
 	for _, filename := range filenames {
 		if !strings.HasSuffix(filename, ".ogv") {
 			continue
 		}
+		fmt.Printf("%d: extracting %s\n", extracted, filename)
 		b, err := explorer.Extract(filename)
 		if err != nil {
-			fmt.Printf("cannot extract %s: %s\n", filename, err.Error())
+			fmt.Printf("cannot extract %s: %+v\n", filename, err)
 			continue
 		}
-		filename = strings.Replace(filename, "\\", string(filepath.Separator), -1)
-		fullname := filepath.Join(resultDir, explorer.App(), explorer.Version(), filename)
-		dir := filepath.Dir(fullname)
-		if _, err := os.Stat(dir); err != nil {
-			if err := os.MkdirAll(dir, 0777); err != nil {
-				fmt.Printf("cannot create dir %s: %s\n", dir, err.Error())
-				continue
+		fullname := filepath.Join(dir, filename)
+		if _, err := os.Stat(filepath.Dir(fullname)); err != nil {
+			if err := os.MkdirAll(filepath.Dir(fullname), 0777); err != nil {
+				fmt.Printf("cannot create dir %s: %+v\n", filepath.Dir(fullname), err)
+				return
 			}
 		}
 		if err := ioutil.WriteFile(fullname, b, 0666); err != nil {
-			fmt.Printf("cannot write file %s: %s\n", fullname, err.Error())
+			fmt.Printf("cannot write file %s: %+v\n", fullname, err)
 			continue
 		}
 		extracted++

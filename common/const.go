@@ -1,6 +1,13 @@
 package common
 
-import "fmt"
+import (
+	"encoding/hex"
+	"fmt"
+	"path/filepath"
+	"strings"
+
+	"github.com/pkg/errors"
+)
 
 func ngdpHostURL(region string) string {
 	return fmt.Sprintf("http://%s.patch.battle.net:1119", region)
@@ -17,14 +24,20 @@ func NGDPCdnsURL(app, region string) string {
 const (
 	PathTypeConfig = "config"
 	PathTypeData   = "data"
-	//PathTypePatch  = "patch"
 )
 
-func Url(cdnHost, cdnPath string, pathType string, hash string, index bool) string {
-	//TODO potential Panic
-	url := "http://" + cdnHost + "/" + cdnPath + "/" + string(pathType) + "/" + string(hash[0:2]) + "/" + string(hash[2:4]) + "/" + hash
-	if !index {
-		return url
+func Url(cdnHost, cdnPath string, pathType string, hash []byte, index bool) (string, error) {
+	h := hex.EncodeToString(hash)
+	if len(h) < 4 {
+		return "", errors.WithStack(errors.New("invalid hash len"))
 	}
-	return url + ".index"
+	url := "http://" + cdnHost + "/" + cdnPath + "/" + string(pathType) + "/" + string(h[0:2]) + "/" + string(h[2:4]) + "/" + h
+	if !index {
+		return url, nil
+	}
+	return url + ".index", nil
+}
+
+func CleanPath(path string) string {
+	return filepath.Clean(strings.Replace(path, "\\", "/", -1))
 }

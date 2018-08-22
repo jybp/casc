@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 
-	"encoding/hex"
 	"io/ioutil"
 
 	"github.com/jybp/casc/blte"
@@ -31,7 +30,6 @@ type online struct {
 }
 
 func newOnlineStorage(app, region, cdnRegion string, client *http.Client) (*online, error) {
-
 	downloadFn := func(rawurl string) ([]byte, error) {
 		resp, err := client.Get(rawurl)
 		if err != nil {
@@ -84,12 +82,11 @@ func newOnlineStorage(app, region, cdnRegion string, client *http.Client) (*onli
 	if len(cdn.Hosts) == 0 {
 		return nil, errors.WithStack(errors.New("no cdn hosts"))
 	}
-	buildCfgB, err := downloadFn(common.Url(
-		cdn.Hosts[0],
-		cdn.Path,
-		common.PathTypeConfig,
-		hex.EncodeToString(version.BuildConfigHash),
-		false))
+	buildCfgURL, err := common.Url(cdn.Hosts[0], cdn.Path, common.PathTypeConfig, version.BuildConfigHash, false)
+	if err != nil {
+		return nil, err
+	}
+	buildCfgB, err := downloadFn(buildCfgURL)
 	if err != nil {
 		return nil, err
 	}
@@ -105,12 +102,11 @@ func newOnlineStorage(app, region, cdnRegion string, client *http.Client) (*onli
 	if len(buildCfg.EncodingHash) < 2 {
 		return nil, errors.WithStack(errors.New("expected at least two encoding hash"))
 	}
-	encodingBlteB, err := downloadFn(common.Url(
-		cdn.Hosts[0],
-		cdn.Path,
-		common.PathTypeData,
-		hex.EncodeToString(buildCfg.EncodingHash[1]),
-		false))
+	encodingURL, err := common.Url(cdn.Hosts[0], cdn.Path, common.PathTypeData, buildCfg.EncodingHash[1], false)
+	if err != nil {
+		return nil, err
+	}
+	encodingBlteB, err := downloadFn(encodingURL)
 	if err != nil {
 		return nil, err
 	}
@@ -126,13 +122,11 @@ func newOnlineStorage(app, region, cdnRegion string, client *http.Client) (*onli
 	//
 	// Set archivesIndices
 	//
-
-	cdnCfgB, err := downloadFn(common.Url(
-		cdn.Hosts[0],
-		cdn.Path,
-		common.PathTypeConfig,
-		hex.EncodeToString(version.CDNConfigHash),
-		false))
+	cdnCfgURL, err := common.Url(cdn.Hosts[0], cdn.Path, common.PathTypeConfig, version.CDNConfigHash, false)
+	if err != nil {
+		return nil, err
+	}
+	cdnCfgB, err := downloadFn(cdnCfgURL)
 	if err != nil {
 		return nil, err
 	}
@@ -142,12 +136,11 @@ func newOnlineStorage(app, region, cdnRegion string, client *http.Client) (*onli
 	}
 	archivesIndices := []archiveIndex{}
 	for _, archiveHash := range cdnCfg.ArchivesHashes {
-		indicesB, err := downloadFn(common.Url(
-			cdn.Hosts[0],
-			cdn.Path,
-			common.PathTypeData,
-			hex.EncodeToString(archiveHash),
-			true))
+		archiveIndexURL, err := common.Url(cdn.Hosts[0], cdn.Path, common.PathTypeData, archiveHash, true)
+		if err != nil {
+			return nil, err
+		}
+		indicesB, err := downloadFn(archiveIndexURL)
 		if err != nil {
 			return nil, err
 		}
@@ -164,12 +157,11 @@ func newOnlineStorage(app, region, cdnRegion string, client *http.Client) (*onli
 	// Set downloadDataFn
 	//
 	downloadDataFn := func(hash []byte) ([]byte, error) {
-		return downloadFn(common.Url(
-			cdn.Hosts[0],
-			cdn.Path,
-			common.PathTypeData,
-			hex.EncodeToString(hash),
-			false))
+		url, err := common.Url(cdn.Hosts[0], cdn.Path, common.PathTypeData, hash, false)
+		if err != nil {
+			return nil, err
+		}
+		return downloadFn(url)
 	}
 
 	return &online{
@@ -195,7 +187,7 @@ func (s *online) RootHash() []byte {
 }
 
 func (s *online) DataFromContentHash(hash []byte) ([]byte, error) {
-	encodedHash, err := s.encoding.FindEncodedHash(hash)
+	encodedHash, err := findEncodedHash(s.encoding, hash)
 	if err != nil {
 		return nil, err
 	}
@@ -226,7 +218,7 @@ func (s *online) DataFromContentHash(hash []byte) ([]byte, error) {
 		}
 	}
 
-	//encoded hash not found in indices, dowload directly
+	//encoded hash not found in indices, download directly
 	blteEncoded, err := s.downloadDataFn(encodedHash)
 	if err != nil {
 		return nil, err

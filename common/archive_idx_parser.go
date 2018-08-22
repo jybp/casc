@@ -14,20 +14,16 @@ type ArchiveIndexEntry struct {
 	Offset      uint32      /* offset of the respective data inside the archive */        /*todo byte size is actually in the footer*/
 }
 
-//TODO simpler imp
-//TODO all parser should accept io.ReaderSeeker so it can be parsed easily. (footer, ...)
 func ParseArchiveIndex(r io.Reader) ([]ArchiveIndexEntry, error) {
 	idxs := []ArchiveIndexEntry{}
 	for {
 		var chunk [1 << 12]uint8 /*fixed size*/
 		if err := binary.Read(r, binary.BigEndian, &chunk); err != nil {
-			/*TODO footer reached*/
 			if err == io.EOF || err == io.ErrUnexpectedEOF {
 				return idxs, nil
 			}
 			return nil, errors.WithStack(err)
 		}
-
 		buf := bytes.NewBuffer(chunk[:])
 		for {
 			idxEntry := ArchiveIndexEntry{}
@@ -37,7 +33,6 @@ func ParseArchiveIndex(r io.Reader) ([]ArchiveIndexEntry, error) {
 				}
 				return nil, errors.WithStack(err)
 			}
-
 			// zero padding reached
 			if idxEntry.HeaderHash == [16]uint8{} {
 				break

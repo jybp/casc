@@ -10,6 +10,7 @@ import (
 	"strings"
 	"unsafe"
 
+	"github.com/jybp/casc/common"
 	"github.com/pkg/errors"
 )
 
@@ -245,7 +246,7 @@ func NewRoot(rootHash []byte, fetchFn func(contentHash []byte) ([]byte, error)) 
 				continue
 			}
 			name := fmt.Sprintf("%s\\%s\\%s.%s", subdir, extensionName, filename, extension)
-			nameToContentHash[name] = assetEntry.ContentHash
+			nameToContentHash[common.CleanPath(name)] = assetEntry.ContentHash
 		}
 	}
 	for subdir, assetIdxEntries := range assetIdxEntriesByDir {
@@ -261,13 +262,13 @@ func NewRoot(rootHash []byte, fetchFn func(contentHash []byte) ([]byte, error)) 
 				extension = strings.TrimLeft(realExtension, ".")
 			}
 			name := fmt.Sprintf("%s\\%s.%s", subdir, namewithoutDirAndExt, extension)
-			nameToContentHash[name] = assetIdxEntry.ContentHash
+			nameToContentHash[common.CleanPath(name)] = assetIdxEntry.ContentHash
 		}
 	}
 	for subdir, namedEntries := range namedEntriesByDir {
 		for _, namedEntry := range namedEntries {
 			name := fmt.Sprintf("%s\\%s", subdir, namedEntry.Filename)
-			nameToContentHash[name] = namedEntry.ContentHash
+			nameToContentHash[common.CleanPath(name)] = namedEntry.ContentHash
 		}
 	}
 	return &Root{nameToContentHash}, nil

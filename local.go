@@ -245,9 +245,28 @@ func (s *local) RootHash() []byte {
 }
 
 func (s *local) DataFromContentHash(hash []byte) ([]byte, error) {
-	encodedHash, err := s.encoding.FindEncodedHash(hash)
+	encodedHash, err := findEncodedHash(s.encoding, hash)
 	if err != nil {
 		return nil, err
 	}
 	return s.dataFromEncodedHashFn(encodedHash)
+}
+
+func findEncodedHash(encoding common.Encoding, decodedHash []byte) (encodedHash []byte, err error) {
+	for _, tableEntry := range encoding.EncCTable {
+		// a faster is to first look at e.Index.Hash which is the first content key of the table entries
+		// indices hash are ordered asc
+		// Once we reach an index hash that is > to the hash we look for, we know the entry we look for is inside the previous encCTableEntry
+		for _, entry := range tableEntry.Entries {
+			if bytes.Compare(decodedHash, entry.Ckey) != 0 {
+				continue
+			}
+			if len(entry.Ekey) == 0 {
+				return nil, errors.WithStack(fmt.Errorf("no encoding key for content key %x", entry.Ckey))
+			}
+			// return any encoded hash
+			return entry.Ekey[0], nil
+		}
+	}
+	return nil, errors.WithStack(fmt.Errorf("no encoded hash found for decoded hash %x", decodedHash))
 }
