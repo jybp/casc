@@ -121,7 +121,7 @@ type CoreTocHeader struct {
 }
 
 type Root struct {
-	nameToContentHash map[string][0x10]uint8
+	nameToContentHash map[string][0x10]byte
 }
 
 func (r *Root) Files() ([]string, error) {
@@ -141,12 +141,8 @@ func (r *Root) ContentHash(filename string) ([]byte, error) {
 	return contentHash[:], nil
 }
 
-func NewRoot(rootHash []byte, fetchFn func(contentHash []byte) ([]byte, error)) (*Root, error) {
-	rootB, err := fetchFn(rootHash)
-	if err != nil {
-		return nil, err
-	}
-	dirEntries, err := parseRoot(bytes.NewReader(rootB))
+func NewRoot(root []byte, fetchFn func(contentHash []byte) ([]byte, error)) (*Root, error) {
+	dirEntries, err := parseRoot(bytes.NewReader(root))
 	if err != nil {
 		return nil, err
 	}

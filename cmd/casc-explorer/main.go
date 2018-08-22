@@ -98,11 +98,8 @@ func main() {
 			return
 		}
 	}
-	extracted := 1
+	extracted := 0
 	for _, filename := range filenames {
-		if !strings.HasSuffix(filename, ".ogv") {
-			continue
-		}
 		fmt.Printf("%d: extracting %s\n", extracted, filename)
 		b, err := explorer.Extract(filename)
 		if err != nil {

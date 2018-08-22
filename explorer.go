@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/jybp/casc/root/diablo3"
+	"github.com/jybp/casc/root/warcraft3"
 	"github.com/pkg/errors"
 )
 
@@ -24,7 +25,7 @@ const (
 	// Overwatch        = "pro"
 	// Starcraft1       = "s1"
 	// Starcraft2       = "s2"
-	// Warcraft3        = "w3"
+	Warcraft3 = "w3"
 	// WorldOfWarcraft  = "wow"
 )
 
@@ -67,15 +68,21 @@ func NewLocalExplorer(installDir string) (*Explorer, error) {
 }
 
 func newExplorer(storage Storage) (*Explorer, error) {
+	rootB, err := storage.DataFromContentHash(storage.RootHash())
+	if err != nil {
+		return nil, err
+	}
 	var root root
-	var err error
+	var errRoot error
 	switch storage.App() {
 	case Diablo3:
-		root, err = diablo3.NewRoot(storage.RootHash(), storage.DataFromContentHash)
+		root, errRoot = diablo3.NewRoot(rootB, storage.DataFromContentHash)
+	case Warcraft3:
+		root, errRoot = warcraft3.NewRoot(rootB)
 	default:
 		return nil, errors.WithStack(errors.New("unsupported app"))
 	}
-	return &Explorer{storage, root}, err
+	return &Explorer{storage, root}, errRoot
 }
 
 // App returns the game code

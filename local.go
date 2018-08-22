@@ -33,7 +33,8 @@ func newLocalStorage(installDir string) (*local, error) {
 
 	findAppFn := func() (string, error) {
 		binaryToApp := map[string]string{
-			"Diablo III": Diablo3,
+			"Diablo III":   Diablo3,
+			"Warcraft III": Warcraft3,
 		}
 		for binary, app := range binaryToApp {
 			if _, err := os.Stat(filepath.Join(installDir, binary+".exe")); err == nil {
