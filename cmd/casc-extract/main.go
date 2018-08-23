@@ -1,10 +1,10 @@
 /*
-casc-explorer explore CASC files from the command-line.
+casc-extract explore CASC files from the command-line.
 Usage:
-	casc-explorer (-dir <install-dir> | -app <app> [-cache <cache-dir>] [-region <region>] [-cdn <cdn>]) [-v]
+	casc-extract (-dir <install-dir> | -app <app> [-region <region>] [-cache <cache-dir>] [-cdn <cdn>]) [-pattern <pattern>] [-o <output-dir>] [-v]
 Examples:
-	casc-explorer -app d3 -region eu -cdn eu -cache /tmp/casc
-	casc-explorer -dir /Applications/Diablo III/
+	casc-extract -app d3 -region us -cdn us -pattern "enUS/Data_D3/Locale/enUS/Cutscenes/*.ogv"
+	casc-extract -dir /Applications/Diablo III/ -pattern "enUS/Data_D3/Locale/enUS/Cutscenes/*.ogv"
 */
 package main
 
@@ -14,11 +14,13 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/jybp/casc"
+	"github.com/jybp/casc/common"
 	"github.com/jybp/httpcache"
 	"github.com/jybp/httpcache/disk"
 )
@@ -32,17 +34,23 @@ func (logTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 
 func main() {
 	defer func(start time.Time) { fmt.Printf("%s\n", time.Since(start)) }(time.Now())
-	var installDir, app, cacheDir, region, cdn string
+	var installDir, app, cacheDir, region, cdn, pattern, outputDir string
 	var verbose bool
 	flag.StringVar(&installDir, "dir", "", "game install directory")
 	flag.StringVar(&app, "app", "", "app code")
 	flag.StringVar(&cacheDir, "cache", "/tmp/casc", "cache directory")
-	flag.StringVar(&region, "region", casc.RegionUS, "app region code")
-	flag.StringVar(&cdn, "cdn", casc.RegionUS, "cdn region")
+	flag.StringVar(&region, "region", common.RegionEU, "app region code")
+	flag.StringVar(&cdn, "cdn", common.RegionEU, "cdn region")
+	flag.StringVar(&pattern, "pattern", "", "filenames matching the pattern will be extracted\n https://golang.org/pkg/path/#Match")
+	flag.StringVar(&outputDir, "o", "", "output directory for extracted files")
 	flag.BoolVar(&verbose, "v", false, "verbose")
 	flag.Parse()
 	if ((app == "") == (installDir == "")) || (app != "" && cacheDir == "") {
 		flag.Usage()
+		return
+	}
+	if _, err := path.Match(pattern, ""); err != nil {
+		fmt.Printf("%+v\n", err)
 		return
 	}
 
@@ -85,28 +93,36 @@ func main() {
 		fmt.Printf("%+v\n", err)
 		return
 	}
-	filesCount := len(filenames)
-
-	resultDir := "online"
-	if installDir != "" {
-		resultDir = "local"
+	if pattern != "" {
+		matches := []string{}
+		for _, filename := range filenames {
+			if ok, _ := path.Match(pattern, filename); !ok {
+				continue
+			}
+			matches = append(matches, filename)
+		}
+		fmt.Printf("%d out of %d files matched pattern %s\n", len(matches), len(filenames), pattern)
+		filenames = matches
 	}
-	dir := filepath.Join("", resultDir, explorer.App(), explorer.Version())
-	if _, err := os.Stat(dir); err != nil {
-		if err := os.MkdirAll(dir, 0777); err != nil {
-			fmt.Printf("cannot create dir %s: %s\n", dir, err.Error())
+
+	if outputDir == "" {
+		outputDir = filepath.Join(explorer.App(), explorer.Version())
+	}
+	if _, err := os.Stat(outputDir); err != nil {
+		if err := os.MkdirAll(outputDir, 0777); err != nil {
+			fmt.Printf("cannot create dir %s: %s\n", outputDir, err.Error())
 			return
 		}
 	}
 	extracted := 0
-	for _, filename := range filenames {
-		fmt.Printf("%d: extracting %s\n", extracted, filename)
+	for i, filename := range filenames {
+		fullname := filepath.Join(outputDir, filename)
+		fmt.Printf("%d/%d: %s\n", i+1, len(filenames), fullname)
 		b, err := explorer.Extract(filename)
 		if err != nil {
 			fmt.Printf("cannot extract %s: %+v\n", filename, err)
 			continue
 		}
-		fullname := filepath.Join(dir, filename)
 		if _, err := os.Stat(filepath.Dir(fullname)); err != nil {
 			if err := os.MkdirAll(filepath.Dir(fullname), 0777); err != nil {
 				fmt.Printf("cannot create dir %s: %+v\n", filepath.Dir(fullname), err)
@@ -119,5 +135,5 @@ func main() {
 		}
 		extracted++
 	}
-	fmt.Printf("%d extracted from %d files\n", extracted, filesCount)
+	fmt.Printf("extracted %d out of %d files\n", extracted, len(filenames))
 }

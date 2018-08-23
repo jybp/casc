@@ -9,6 +9,27 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Regions codes
+const (
+	RegionUS = "us"
+	RegionEU = "eu"
+	RegionKR = "kr"
+	RegionTW = "tw"
+	RegionCN = "cn"
+)
+
+// Program codes
+const (
+	Diablo3 = "d3"
+	// HeroesOfTheStorm = "hero"
+	// Hearthstone      = "hsb"
+	// Overwatch        = "pro"
+	// Starcraft1       = "s1"
+	// Starcraft2       = "s2"
+	Warcraft3 = "w3"
+	// WorldOfWarcraft  = "wow"
+)
+
 func ngdpHostURL(region string) string {
 	return fmt.Sprintf("http://%s.patch.battle.net:1119", region)
 }

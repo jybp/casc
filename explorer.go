@@ -3,34 +3,17 @@ package casc
 import (
 	"net/http"
 
+	"github.com/jybp/casc/common"
+	"github.com/jybp/casc/local"
+	"github.com/jybp/casc/online"
 	"github.com/jybp/casc/root/diablo3"
 	"github.com/jybp/casc/root/warcraft3"
 	"github.com/pkg/errors"
 )
 
-// Regions codes
-const (
-	RegionUS = "us"
-	RegionEU = "eu"
-	RegionKR = "kr"
-	RegionTW = "tw"
-	RegionCN = "cn"
-)
-
-// Program codes
-const (
-	Diablo3 = "d3"
-	// HeroesOfTheStorm = "hero"
-	// Hearthstone      = "hsb"
-	// Overwatch        = "pro"
-	// Starcraft1       = "s1"
-	// Starcraft2       = "s2"
-	Warcraft3 = "w3"
-	// WorldOfWarcraft  = "wow"
-)
-
 // Storage descibes how to fetch CASC content.
 type Storage interface {
+	//TODO all methods must be goroutine safe
 	App() string
 	Version() string
 	RootHash() []byte
@@ -39,6 +22,7 @@ type Storage interface {
 
 // Each app has its own way of relating file names to content hash.
 type root interface {
+	//TODO all methods must be goroutine safe
 	Files() ([]string, error)
 	ContentHash(filename string) ([]byte, error)
 }
@@ -51,7 +35,7 @@ type Explorer struct {
 
 // NewOnlineExplorer will use client to fetch CASC files.
 func NewOnlineExplorer(app, region, cdnRegion string, client *http.Client) (*Explorer, error) {
-	storage, err := newOnlineStorage(app, region, cdnRegion, client)
+	storage, err := online.NewStorage(app, region, cdnRegion, client)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +44,7 @@ func NewOnlineExplorer(app, region, cdnRegion string, client *http.Client) (*Exp
 
 // NewLocalExplorer will use files located under installDir to fetch CASC files.
 func NewLocalExplorer(installDir string) (*Explorer, error) {
-	local, err := newLocalStorage(installDir)
+	local, err := local.NewStorage(installDir)
 	if err != nil {
 		return nil, err
 	}
@@ -75,9 +59,9 @@ func newExplorer(storage Storage) (*Explorer, error) {
 	var root root
 	var errRoot error
 	switch storage.App() {
-	case Diablo3:
+	case common.Diablo3:
 		root, errRoot = diablo3.NewRoot(rootB, storage.DataFromContentHash)
-	case Warcraft3:
+	case common.Warcraft3:
 		root, errRoot = warcraft3.NewRoot(rootB)
 	default:
 		return nil, errors.WithStack(errors.New("unsupported app"))

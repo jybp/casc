@@ -21,8 +21,8 @@ cache
 doc
 blte
 !blte/
-casc-explorer
-!casc-explorer/
+casc-extract
+!casc-extract/
 local
 online
 casclib
