@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/jybp/casc/common"
 	"github.com/pkg/errors"
 )
 
@@ -39,7 +40,7 @@ func NewRoot(root []byte) (*Root, error) {
 		line := scanner.Text()
 		splits := strings.Split(line, "|")
 		if len(splits) < 2 {
-			fmt.Println(line)
+			fmt.Fprintf(common.Wlog, line)
 			return nil, errors.WithStack(errors.New("invalid Warcraft 3 root"))
 		}
 		name := splits[0]
@@ -49,7 +50,7 @@ func NewRoot(root []byte) (*Root, error) {
 		hashStr := splits[1]
 		hash, err := hex.DecodeString(hashStr)
 		if err != nil {
-			fmt.Println(line)
+			fmt.Fprintf(common.Wlog, line)
 			return nil, errors.WithStack(err)
 		}
 		nameToContentHash[name] = hash

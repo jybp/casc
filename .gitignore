@@ -23,7 +23,6 @@ blte
 !blte/
 casc-extract
 !casc-extract/
-local
-online
+extract
 casclib
 *.log

@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+//TODO pkg encoding/csv
 func parseCSV(r io.Reader) ([]map[string]string, error) {
 	columns := []string{}
 	csv := []map[string]string{}
