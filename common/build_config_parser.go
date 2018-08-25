@@ -8,8 +8,9 @@ import (
 
 //Build config
 type BuildConfig struct {
-	RootHash     []byte
-	EncodingHash [][]byte
+	RootHash       []byte
+	InstallHashes  [][]byte
+	EncodingHashes [][]byte
 }
 
 func ParseBuildConfig(r io.Reader) (BuildConfig, error) {
@@ -19,14 +20,25 @@ func ParseBuildConfig(r io.Reader) (BuildConfig, error) {
 		return BuildConfig{}, err
 	}
 	if len(rootHashes) != 1 {
-		return BuildConfig{}, errors.WithStack(errors.New("build config doesn't contain exactly one root hash"))
+		return BuildConfig{}, errors.WithStack(errors.New("build config hash missing"))
 	}
 	encodingHashes, err := configToHashes(buildCfg, "encoding")
 	if err != nil {
 		return BuildConfig{}, err
 	}
+	if len(encodingHashes) < 1 {
+		return BuildConfig{}, errors.WithStack(errors.New("build config hash missing"))
+	}
+	installHashes, err := configToHashes(buildCfg, "install")
+	if err != nil {
+		return BuildConfig{}, err
+	}
+	if len(installHashes) < 1 {
+		return BuildConfig{}, errors.WithStack(errors.New("build config hash missing"))
+	}
 	return BuildConfig{
-		RootHash:     rootHashes[0],
-		EncodingHash: encodingHashes,
+		RootHash:       rootHashes[0],
+		InstallHashes:  installHashes,
+		EncodingHashes: encodingHashes,
 	}, nil
 }

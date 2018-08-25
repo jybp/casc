@@ -131,10 +131,10 @@ func NewStorage(installDir string) (*local, error) {
 		idxEntries[uint8(bucketID)] = append(idxEntries[uint8(bucketID)], indices...)
 	}
 
-	if len(buildCfg.EncodingHash) < 2 { // TODO handle cases where only 1 encoding hash is provided
+	if len(buildCfg.EncodingHashes) < 2 { // TODO handle cases where only content hash provided
 		return nil, errors.WithStack(errors.New("expected at least two encoding hash"))
 	}
-	encodingR, err := dataFromEncodedHash(buildCfg.EncodingHash[1], installDir, idxEntries)
+	encodingR, err := dataFromEncodedHash(buildCfg.EncodingHashes[1], installDir, idxEntries)
 	if err != nil {
 		return nil, err
 	}
@@ -170,6 +170,7 @@ func (s *local) DataFromContentHash(hash []byte) ([]byte, error) {
 	if !ok || len(encodedHashes) == 0 {
 		return nil, errors.WithStack(errors.Errorf("encoded hash not found for decoded hash %x", hash))
 	}
+	fmt.Fprintf(common.Wlog, "content hash %x has encoded hashes %x\n", hash, encodedHashes)
 	return dataFromEncodedHash(encodedHashes[0], s.installDir, s.idxs)
 }
 
@@ -242,11 +243,7 @@ func dataFromEncodedHash(hash []byte, installDir string, idxs map[uint8][]common
 	if _, err := f.Seek(10, io.SeekCurrent); err != nil { //unk, ChecksumA, ChecksumB
 		return nil, errors.WithStack(err)
 	}
-	blteEncoded := make([]byte, idx.Size-30)
-	if _, err := io.ReadFull(f, blteEncoded); err != nil {
-		return nil, errors.WithStack(err)
-	}
-	blteReader, err := blte.NewReader(bytes.NewReader(blteEncoded))
+	blteReader, err := blte.NewReader(io.LimitReader(f, int64(idx.Size-30)))
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

@@ -1,7 +1,6 @@
 package common
 
 import (
-	"bytes"
 	"encoding/binary"
 	"io"
 
@@ -9,35 +8,44 @@ import (
 )
 
 type ArchiveIndexEntry struct {
-	HeaderHash  [0x10]uint8 /* first checksumSize bytes of the MD5 of the respective data. Size is actually to be found in the footer. */
-	EncodedSize uint32      /* encoding size of the respective data inside the archive */ /*todo byte size is actually in the footer*/
-	Offset      uint32      /* offset of the respective data inside the archive */        /*todo byte size is actually in the footer*/
+	HeaderHash  [0x10]uint8
+	EncodedSize uint32
+	Offset      uint32
 }
 
-func ParseArchiveIndex(r io.Reader) ([]ArchiveIndexEntry, error) {
-	idxs := []ArchiveIndexEntry{}
-	for {
-		var chunk [1 << 12]uint8 /*fixed size*/
-		if err := binary.Read(r, binary.BigEndian, &chunk); err != nil {
-			if err == io.EOF || err == io.ErrUnexpectedEOF {
-				return idxs, nil
-			}
+func ParseArchiveIndex(r io.ReadSeeker) ([]ArchiveIndexEntry, error) {
+	pos, err := r.Seek(-12, io.SeekEnd)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	length := pos + 12
+	var count uint32
+	if err := binary.Read(r, binary.LittleEndian, &count); err != nil {
+		return nil, errors.WithStack(err)
+	}
+	if int64(count*(16+4+4)) > length {
+		return nil, errors.WithStack(errors.New("archive index invalid length"))
+	}
+	if _, err := r.Seek(0, io.SeekStart); err != nil {
+		return nil, errors.WithStack(err)
+	}
+	indices := []ArchiveIndexEntry{}
+	for i := uint32(0); i < count; i++ {
+		indexEntry := ArchiveIndexEntry{}
+		if err := binary.Read(r, binary.BigEndian, &indexEntry.HeaderHash); err != nil {
 			return nil, errors.WithStack(err)
 		}
-		buf := bytes.NewBuffer(chunk[:])
-		for {
-			idxEntry := ArchiveIndexEntry{}
-			if err := binary.Read(buf, binary.BigEndian, &idxEntry); err != nil {
-				if err == io.EOF || err == io.ErrUnexpectedEOF {
-					return idxs, nil
-				}
-				return nil, errors.WithStack(err)
-			}
-			// zero padding reached
-			if idxEntry.HeaderHash == [16]uint8{} {
-				break
-			}
-			idxs = append(idxs, idxEntry)
+		if indexEntry.HeaderHash == ([0x10]byte{}) {
+			i = i - 1
+			continue
 		}
+		if err := binary.Read(r, binary.BigEndian, &indexEntry.EncodedSize); err != nil {
+			return nil, errors.WithStack(err)
+		}
+		if err := binary.Read(r, binary.BigEndian, &indexEntry.Offset); err != nil {
+			return nil, errors.WithStack(err)
+		}
+		indices = append(indices, indexEntry)
 	}
+	return indices, nil
 }

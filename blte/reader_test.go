@@ -8,12 +8,13 @@ import (
 	"testing"
 )
 
-var uncompressed = []byte{'N', 'h', 'e', 'l', 'l', 'o', ',', ' ', 'w', 'o', 'r', 'l', 'd'}
-var compressed = []byte{'Z', 120, 156, 202, 72, 205, 201, 201, 215, 81, 40, 207,
-	47, 202, 73, 225, 2, 4, 0, 0, 255, 255, 33, 231, 4, 147}
-
 func TestOneChunk(t *testing.T) {
-	r, err := NewReader(bytes.NewReader(oneChunk()))
+	r, err := NewReader(bytes.NewReader([]byte{
+		/*sig  */ 66, 76, 84, 69,
+		/*size */ 0, 0, 0, 0,
+		/*chunk*/ 'Z', 120, 156, 202, 72, 205, 201, 201, 215, 81, 40, 207,
+		47, 202, 73, 225, 2, 4, 0, 0, 255, 255, 33, 231, 4, 147,
+	}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,16 +26,6 @@ func TestOneChunk(t *testing.T) {
 	if bytes.Compare(expected, actual) != 0 {
 		t.Fatalf("exected:%+v\nactual:%+v", expected, actual)
 	}
-}
-
-func oneChunk() []byte {
-	return concat(
-		[]byte{
-			/*sig  */ 66, 76, 84, 69,
-			/*size */ 0, 0, 0, 0,
-		},
-		compressed,
-	)
 }
 
 func TestTwoChunks(t *testing.T) {
@@ -54,6 +45,9 @@ func TestTwoChunks(t *testing.T) {
 }
 
 func twoChunks() []byte {
+	uncompressed := []byte{'N', 'h', 'e', 'l', 'l', 'o', ',', ' ', 'w', 'o', 'r', 'l', 'd'}
+	compressed := []byte{'Z', 120, 156, 202, 72, 205, 201, 201, 215, 81, 40, 207,
+		47, 202, 73, 225, 2, 4, 0, 0, 255, 255, 33, 231, 4, 147}
 	hashZ := md5.Sum(compressed)
 	hashN := md5.Sum(uncompressed)
 	var headerSize = make([]byte, 4)

@@ -1,19 +1,20 @@
 app = d3
-pattern = enUS/Data_D3/Locale/enUS/Cutscenes/*.ogv
+pattern = enUS/Data_D3/Locale/enUS/Cutscenes/*Barb*.sbt
 dir = /Applications/Diablo III
+output = extract/$(app)
 
 .PHONY: build
 build: 
-	@go build
+	cd ./cmd/casc-extract && go build
 
 .PHONY: test
 test:
 	@go test -race -v ./...
 
 .PHONY: online
-online: 
-	@cd ./cmd/casc-extract && go build && ./casc-extract -app $(app) -region eu -cdn eu -cache cache -pattern "$(pattern)" -o "extract/online/$(app)" -v
+online: build
+	@cd ./cmd/casc-extract && ./casc-extract -app $(app) -region eu -cdn eu -cache cache -pattern "$(pattern)" -o "$(output)/online" -v
 
 .PHONY: local
-local: 
-	@cd ./cmd/casc-extract && go build && ./casc-extract -dir "$(dir)" -pattern "$(pattern)" -o "extract/local/$(app)" -v
+local: build
+	@cd ./cmd/casc-extract && ./casc-extract -dir "$(dir)" -pattern "$(pattern)" -o "$(output)/local" -v

@@ -100,10 +100,10 @@ func NewStorage(app, region, cdnRegion string, client *http.Client) (*online, er
 	// Set encoding
 	//
 
-	if len(buildCfg.EncodingHash) < 2 {
+	if len(buildCfg.EncodingHashes) < 2 { //TODO handle if only content hash provided
 		return nil, errors.WithStack(errors.New("expected at least two encoding hash"))
 	}
-	encodingURL, err := common.Url(cdn.Hosts[0], cdn.Path, common.PathTypeData, buildCfg.EncodingHash[1], false)
+	encodingURL, err := common.Url(cdn.Hosts[0], cdn.Path, common.PathTypeData, buildCfg.EncodingHashes[1], false)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +158,7 @@ func NewStorage(app, region, cdnRegion string, client *http.Client) (*online, er
 			archivesIndices = append(archivesIndices, archiveIndex{index, archiveHash})
 		}
 	}
-
+	fmt.Fprintf(common.Wlog, "%d archive indices parsed\n", len(archivesIndices))
 	//
 	// Set downloadDataFn
 	//
@@ -197,39 +197,32 @@ func (s *online) DataFromContentHash(hash []byte) ([]byte, error) {
 	if !ok || len(encodedHashes) == 0 {
 		return nil, errors.WithStack(errors.Errorf("encoded hash not found for decoded hash %x", hash))
 	}
+	fmt.Fprintf(common.Wlog, "content hash %x has encoded hashes %x\n", hash, encodedHashes)
+	return s.dataFromEncodedHash(encodedHashes[0])
+}
 
-	decodeBlteFn := func(encoded []byte) ([]byte, error) {
-		blteReader, err := blte.NewReader(bytes.NewReader(encoded))
+func (s *online) dataFromEncodedHash(hash []byte) ([]byte, error) {
+	decodeBlteFn := func(encoded io.Reader) ([]byte, error) {
+		blteReader, err := blte.NewReader(encoded)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 		return ioutil.ReadAll(blteReader)
 	}
-
 	for _, idx := range s.archivesIndices {
-		if bytes.Compare(encodedHashes[0], idx.HeaderHash[:]) == 0 {
-			fmt.Fprintf(common.Wlog, "archive found %x\n", idx.archiveHash)
+		if bytes.Compare(hash, idx.HeaderHash[:]) == 0 {
 			archiveB, err := s.downloadDataFn(idx.archiveHash)
 			if err != nil {
 				return nil, err
 			}
-			archiveR := bytes.NewReader(archiveB)
-			if _, err := archiveR.Seek(int64(idx.Offset), io.SeekStart); err != nil {
-				return nil, err
-			}
-			blteEncoded := make([]byte, idx.EncodedSize)
-			if _, err := io.ReadFull(archiveR, blteEncoded); err != nil {
-				return nil, err
-			}
-			return decodeBlteFn(blteEncoded)
+			return decodeBlteFn(io.NewSectionReader(bytes.NewReader(archiveB),
+				int64(idx.Offset),
+				int64(idx.EncodedSize)))
 		}
 	}
-
-	fmt.Fprintf(common.Wlog, "archive not found\n")
-	//encoded hash not found in indices, download directly
-	blteEncoded, err := s.downloadDataFn(encodedHashes[0])
+	blteEncoded, err := s.downloadDataFn(hash)
 	if err != nil {
 		return nil, err
 	}
-	return decodeBlteFn(blteEncoded)
+	return decodeBlteFn(bytes.NewReader(blteEncoded))
 }

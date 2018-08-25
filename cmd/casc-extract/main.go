@@ -100,25 +100,26 @@ func main() {
 
 	// Pattern
 	fmt.Fprintf(common.Wlog, "version: %s:\n", explorer.Version())
-	filenames, err := explorer.Files()
+	all, err := explorer.Files()
 	if err != nil {
 		fmt.Printf(errFmt+"\n", err)
 		return
 	}
+	filtered := all
 	if pattern != "" {
 		matches := []string{}
-		for _, filename := range filenames {
+		for _, filename := range all {
 			if ok, _ := path.Match(pattern, filename); !ok {
 				continue
 			}
 			matches = append(matches, filename)
 		}
-		fmt.Fprintf(common.Wlog, "%d out of %d files matched pattern %s\n", len(matches), len(filenames), pattern)
-		filenames = matches
+		fmt.Fprintf(common.Wlog, "%d out of %d files matched pattern %s\n", len(matches), len(all), pattern)
+		filtered = matches
 	}
 	// List
 	if list {
-		for _, filename := range filenames {
+		for _, filename := range filtered {
 			fmt.Printf("%s\n", filename)
 		}
 		return
@@ -134,9 +135,9 @@ func main() {
 		}
 	}
 	extracted := 0
-	for i, filename := range filenames {
+	for i, filename := range filtered {
 		fullname := filepath.Join(outputDir, filename)
-		fmt.Printf("%d/%d: %s\n", i+1, len(filenames), fullname)
+		fmt.Printf("%d/%d: %s\n", i+1, len(filtered), fullname)
 		b, err := explorer.Extract(filename)
 		if err != nil {
 			fmt.Printf("cannot extract %s: "+errFmt+"\n", filename, err)
@@ -154,5 +155,5 @@ func main() {
 		}
 		extracted++
 	}
-	fmt.Fprintf(common.Wlog, "extracted %d out of %d files\n", extracted, len(filenames))
+	fmt.Fprintf(common.Wlog, "extracted %d out of %d filtered files (total: %d)\n", extracted, len(filtered), len(all))
 }
