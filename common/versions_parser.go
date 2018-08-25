@@ -1,9 +1,7 @@
 package common
 
 import (
-	"bytes"
 	"encoding/hex"
-	"fmt"
 	"io"
 
 	"github.com/pkg/errors"
@@ -13,20 +11,6 @@ type Version struct {
 	BuildConfigHash []byte
 	CDNConfigHash   []byte
 	Name            string // i.e. A.B.C.XXXXX
-}
-
-// ParseVersions tries to parse using ParseBuildInfo and ParseOnlineVersions
-func ParseVersions(r io.Reader) (map[string]Version, error) {
-	var buf bytes.Buffer
-	tee := io.TeeReader(r, &buf)
-	versions, err := ParseBuildInfo(tee)
-	if err != nil {
-		versions, err = ParseOnlineVersions(&buf)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return versions, nil
 }
 
 // ParseBuildInfo parses the .build.info file
@@ -41,40 +25,24 @@ func ParseOnlineVersions(r io.Reader) (map[string]Version, error) {
 }
 
 func parseVersions(r io.Reader, region, build, cdn, version string) (map[string]Version, error) {
-	csv, err := parseCSV(r)
+	csv, err := parseCSV(r, region, build, cdn, version)
 	if err != nil {
 		return nil, err
 	}
 	versions := map[string]Version{}
 	for _, row := range csv {
-		region, ok := row[region]
-		if !ok {
-			return nil, errors.WithStack(fmt.Errorf("invalid version: %+v", row))
-		}
-		builConfigStr, ok := row[build]
-		if !ok {
-			return nil, errors.WithStack(fmt.Errorf("invalid version: %+v", row))
-		}
-		builConfigHash, err := hex.DecodeString(builConfigStr)
+		builConfigHash, err := hex.DecodeString(row[build])
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errors.WithStack(errors.New("invalid versions"))
 		}
-		cdnConfigStr, ok := row[cdn]
-		if !ok {
-			return nil, errors.WithStack(fmt.Errorf("invalid version: %+v", row))
-		}
-		cdnConfigHash, err := hex.DecodeString(cdnConfigStr)
+		cdnConfigHash, err := hex.DecodeString(row[cdn])
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errors.WithStack(errors.New("invalid versions"))
 		}
-		versionName, ok := row[version]
-		if !ok {
-			return nil, errors.WithStack(fmt.Errorf("invalid version: %+v", row))
-		}
-		versions[region] = Version{
+		versions[row[region]] = Version{
 			BuildConfigHash: builConfigHash,
 			CDNConfigHash:   cdnConfigHash,
-			Name:            versionName,
+			Name:            row[version],
 		}
 	}
 	return versions, nil

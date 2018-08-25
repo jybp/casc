@@ -60,7 +60,7 @@ func NewStorage(installDir string) (*local, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	versions, err := common.ParseVersions(bytes.NewReader(buildInfoB))
+	versions, err := common.ParseBuildInfo(bytes.NewReader(buildInfoB))
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -170,7 +170,6 @@ func (s *local) DataFromContentHash(hash []byte) ([]byte, error) {
 	if !ok || len(encodedHashes) == 0 {
 		return nil, errors.WithStack(errors.Errorf("encoded hash not found for decoded hash %x", hash))
 	}
-	fmt.Fprintf(common.Wlog, "content hash %x has encoded hashes %x\n", hash, encodedHashes)
 	return dataFromEncodedHash(encodedHashes[0], s.installDir, s.idxs)
 }
 

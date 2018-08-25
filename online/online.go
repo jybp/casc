@@ -55,7 +55,7 @@ func NewStorage(app, region, cdnRegion string, client *http.Client) (*online, er
 	if err != nil {
 		return nil, err
 	}
-	versions, err := common.ParseVersions(bytes.NewReader(versionsB))
+	versions, err := common.ParseOnlineVersions(bytes.NewReader(versionsB))
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +197,6 @@ func (s *online) DataFromContentHash(hash []byte) ([]byte, error) {
 	if !ok || len(encodedHashes) == 0 {
 		return nil, errors.WithStack(errors.Errorf("encoded hash not found for decoded hash %x", hash))
 	}
-	fmt.Fprintf(common.Wlog, "content hash %x has encoded hashes %x\n", hash, encodedHashes)
 	return s.dataFromEncodedHash(encodedHashes[0])
 }
 

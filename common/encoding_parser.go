@@ -13,12 +13,12 @@ import (
 type EncodingCPageEntry struct {
 	KeyCount uint16
 	FileSize uint32
-	Ckey     []uint8   /*CHashSize*/
-	Ekey     [][]uint8 /*[EHashSize][KeyCount]*/
+	Ckey     []uint8
+	Ekey     [][]uint8
 }
 
 type EncodingPageIndex struct {
-	Hash     []uint8 /*XHashSize*/
+	Hash     []uint8
 	Checksum [0x10]uint8
 }
 

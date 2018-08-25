@@ -64,6 +64,7 @@ func createReader(r io.Reader, usize, csize int, checksum [0x10]byte) (io.Reader
 	if err := binary.Read(r, binary.BigEndian, &typ); err != nil {
 		return nil, errors.WithStack(err)
 	}
+	//TODO inefficient copy to check hash
 	var compressed []byte
 	var err error
 	if csize <= 0 {
@@ -93,6 +94,7 @@ func createReader(r io.Reader, usize, csize int, checksum [0x10]byte) (io.Reader
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
+		//TODO inefficient copy because zlibReader implements io.Closer
 		var uncompressed []byte
 		if usize <= 0 {
 			uncompressed, err = ioutil.ReadAll(zlibReader)
