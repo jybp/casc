@@ -21,8 +21,7 @@ type archiveIndex struct {
 }
 
 type online struct {
-	app string
-
+	app             string
 	versionName     string
 	rootEncodedHash []byte
 	encoding        map[string][][]byte
@@ -192,7 +191,7 @@ func (s *online) RootHash() []byte {
 	return s.rootEncodedHash
 }
 
-func (s *online) DataFromContentHash(hash []byte) ([]byte, error) {
+func (s *online) FromContentHash(hash []byte) ([]byte, error) {
 	encodedHashes, ok := s.encoding[hex.EncodeToString(hash)]
 	if !ok || len(encodedHashes) == 0 {
 		return nil, errors.WithStack(errors.Errorf("encoded hash not found for decoded hash %x", hash))

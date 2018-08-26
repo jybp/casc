@@ -36,6 +36,7 @@ func NewStorage(installDir string) (*local, error) {
 		binaryToApp := map[string]string{
 			"Diablo III":   common.Diablo3,
 			"Warcraft III": common.Warcraft3,
+			"StarCraft":    common.Starcraft1,
 		}
 		for binary, app := range binaryToApp {
 			if _, err := os.Stat(filepath.Join(installDir, binary+".exe")); err == nil {
@@ -165,7 +166,7 @@ func (s *local) RootHash() []byte {
 	return s.rootEncodedHash
 }
 
-func (s *local) DataFromContentHash(hash []byte) ([]byte, error) {
+func (s *local) FromContentHash(hash []byte) ([]byte, error) {
 	encodedHashes, ok := s.encoding[hex.EncodeToString(hash)]
 	if !ok || len(encodedHashes) == 0 {
 		return nil, errors.WithStack(errors.Errorf("encoded hash not found for decoded hash %x", hash))

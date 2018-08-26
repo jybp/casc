@@ -7,6 +7,7 @@ import (
 	"github.com/jybp/casc/local"
 	"github.com/jybp/casc/online"
 	"github.com/jybp/casc/root/diablo3"
+	"github.com/jybp/casc/root/starcraft1"
 	"github.com/jybp/casc/root/warcraft3"
 	"github.com/pkg/errors"
 )
@@ -17,7 +18,7 @@ type Storage interface {
 	App() string
 	Version() string
 	RootHash() []byte
-	DataFromContentHash(hash []byte) ([]byte, error)
+	FromContentHash(hash []byte) ([]byte, error)
 }
 
 // Each app has its own way of relating file names to content hash.
@@ -52,7 +53,7 @@ func NewLocalExplorer(installDir string) (*Explorer, error) {
 }
 
 func newExplorer(storage Storage) (*Explorer, error) {
-	rootB, err := storage.DataFromContentHash(storage.RootHash())
+	rootB, err := storage.FromContentHash(storage.RootHash())
 	if err != nil {
 		return nil, err
 	}
@@ -60,9 +61,11 @@ func newExplorer(storage Storage) (*Explorer, error) {
 	var errRoot error
 	switch storage.App() {
 	case common.Diablo3:
-		root, errRoot = diablo3.NewRoot(rootB, storage.DataFromContentHash)
+		root, errRoot = diablo3.NewRoot(rootB, storage.FromContentHash)
 	case common.Warcraft3:
 		root, errRoot = warcraft3.NewRoot(rootB)
+	case common.Starcraft1:
+		root, errRoot = starcraft1.NewRoot(rootB)
 	default:
 		return nil, errors.WithStack(errors.New("unsupported app"))
 	}
@@ -91,5 +94,5 @@ func (e Explorer) Extract(filename string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return e.storage.DataFromContentHash(contentHash)
+	return e.storage.FromContentHash(contentHash)
 }

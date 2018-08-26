@@ -1,4 +1,4 @@
-package warcraft3
+package starcraft1
 
 import (
 	"bufio"
@@ -33,23 +33,19 @@ func (r *Root) ContentHash(filename string) ([]byte, error) {
 }
 
 func NewRoot(root []byte) (*Root, error) {
-	//TODO root contains filenames of all locales.
-	//If not installed locally, fetching those files will fial
 	nameToContentHash := map[string][]byte{}
 	scanner := bufio.NewScanner(bytes.NewReader(root))
 	for scanner.Scan() {
 		line := scanner.Text()
 		splits := strings.Split(line, "|")
-		if len(splits) < 2 {
+		if len(splits) != 2 {
 			return nil, errors.WithStack(errors.New("invalid Warcraft 3 root"))
 		}
-		name := splits[0]
-		hashStr := splits[1]
-		hash, err := hex.DecodeString(hashStr)
+		hash, err := hex.DecodeString(splits[1])
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
-		nameToContentHash[name] = hash
+		nameToContentHash[splits[0]] = hash
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, errors.WithStack(err)

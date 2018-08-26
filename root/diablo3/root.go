@@ -152,7 +152,7 @@ func NewRoot(root []byte, fetchFn func(contentHash []byte) ([]byte, error)) (*Ro
 	for _, dirEntry := range dirEntries {
 		dirB, err := fetchFn(dirEntry.ContentHash[:])
 		if err != nil {
-			// 'Mac' and 'Windows' dirEntry cannot be fetch.
+			// 'Mac' and 'Windows' dirEntry cannot be fetch. //TODO can it now with fix?
 			// Each language has a dirEntry that won't be referenced in the .idx if not installed.
 			continue
 		}
@@ -277,7 +277,7 @@ func readAsciiz(r io.Reader, dest *string) error {
 		if err := binary.Read(r, binary.LittleEndian, &c); err != nil {
 			return errors.WithStack(err)
 		}
-		if c == 0 { //ASCIIZ
+		if c == 0 {
 			break
 		}
 		buf.WriteByte(c)
@@ -417,7 +417,6 @@ func parseCoreToc(coreTocR io.ReadSeeker) (map[uint32]SnoInfo, error) {
 			if _, err := coreTocR.Seek(int64(currentPos), io.SeekStart); err != nil {
 				return nil, errors.WithStack(err)
 			}
-
 			snoInfos[snoID] = SnoInfo{
 				Filename:   name,
 				SnoGroupID: snoGroupID,

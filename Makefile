@@ -1,6 +1,6 @@
-app = d3
-pattern = enUS/Data_D3/Locale/enUS/Cutscenes/*Barb*.sbt
-dir = /Applications/Diablo III
+app = s1
+# pattern = enUS/Data_D3/Locale/enUS/Cutscenes/*Barb*.sbt
+dir = /Applications/Starcraft
 output = extract/$(app)
 
 .PHONY: build
