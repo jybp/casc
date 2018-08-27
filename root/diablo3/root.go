@@ -223,6 +223,10 @@ func NewRoot(root []byte, fetchFn func(contentHash []byte) ([]byte, error)) (*Ro
 		if snoInfo.SnoGroupID >= 0 && int(snoInfo.SnoGroupID) < len(SnoExtensions) {
 			extension = SnoExtensions[snoInfo.SnoGroupID].Extension
 			extensionName = SnoExtensions[snoInfo.SnoGroupID].Name
+			//TODO Necromancer skillkit missing
+			if strings.Contains(extensionName, "SkillKit") {
+				fmt.Println(filename)
+			}
 		} else {
 			//extension not found in snoInfo, generate a random one
 			ext := []rune{

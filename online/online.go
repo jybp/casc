@@ -90,6 +90,7 @@ func NewStorage(app, region, cdnRegion string, client *http.Client) (*online, er
 	if err != nil {
 		return nil, err
 	}
+
 	buildCfg, err := common.ParseBuildConfig(bytes.NewReader(buildCfgB))
 	if err != nil {
 		return nil, err
@@ -135,6 +136,7 @@ func NewStorage(app, region, cdnRegion string, client *http.Client) (*online, er
 	if err != nil {
 		return nil, err
 	}
+
 	cdnCfg, err := common.ParseCdnConfig(bytes.NewReader(cdnCfgB))
 	if err != nil {
 		return nil, err

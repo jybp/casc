@@ -17,6 +17,16 @@ import (
 	"github.com/pkg/errors"
 )
 
+var productToApps = map[string]string{
+	"Diablo3": common.Diablo3,
+	// "Hero":common.HeroesOfTheStorm,
+	// "Prometheus":common.Overwatch,
+	"Starcraft1": common.Starcraft1,
+	// "SC2": common.Starcraft2,
+	"War3": common.Warcraft3,
+	// "WoW":common.WorldOfWarcraft,
+}
+
 type local struct {
 	app             string
 	versionName     string
@@ -29,32 +39,7 @@ type local struct {
 func NewStorage(installDir string) (*local, error) {
 
 	//
-	// Set app
-	//
-
-	findAppFn := func() (string, error) {
-		binaryToApp := map[string]string{
-			"Diablo III":   common.Diablo3,
-			"Warcraft III": common.Warcraft3,
-			"StarCraft":    common.Starcraft1,
-		}
-		for binary, app := range binaryToApp {
-			if _, err := os.Stat(filepath.Join(installDir, binary+".exe")); err == nil {
-				return app, nil
-			}
-			if _, err := os.Stat(filepath.Join(installDir, binary+".app")); err == nil {
-				return app, nil
-			}
-		}
-		return "", errors.WithStack(errors.New("unsupported app"))
-	}
-	app, err := findAppFn()
-	if err != nil {
-		return nil, err
-	}
-
-	//
-	// Set versionName
+	// app & versionName
 	//
 
 	buildInfoB, err := ioutil.ReadFile(filepath.Join(installDir, ".build.info"))
@@ -75,7 +60,7 @@ func NewStorage(installDir string) (*local, error) {
 	version := versions[region]
 
 	//
-	// Set RootEncodedHash
+	// rootEncodedHash & app
 	//
 
 	buildConfigHash := hex.EncodeToString(version.BuildConfigHash)
@@ -92,9 +77,14 @@ func NewStorage(installDir string) (*local, error) {
 	if err != nil {
 		return nil, err
 	}
+	rootHash := buildCfg.RootHash
+	app, ok := productToApps[buildCfg.BuildProduct]
+	if !ok {
+		return nil, errors.WithStack(errors.Errorf("unknown build-product: %s", buildCfg.BuildProduct))
+	}
 
 	//
-	// Set encoding and dataFromEncodedHashFn
+	// encoding & dataFromEncodedHashFn
 	//
 
 	// Load all indices
@@ -104,7 +94,7 @@ func NewStorage(installDir string) (*local, error) {
 	}
 	// There is multiple files for the same bucket with duplicate entries.
 	// It looks like the last file contains the most up to date indices.
-	// Sort the files accordingly so that the first index findIdxFn finds is the correct.
+	// Sort the files accordingly so that the first index findIdx finds is the correct.
 	sort.Slice(files, func(i, j int) bool { return files[i].Name() > files[j].Name() })
 	idxEntries := map[uint8][]common.IdxEntry{}
 	for _, file := range files {
@@ -147,7 +137,7 @@ func NewStorage(installDir string) (*local, error) {
 	return &local{
 		app:             app,
 		versionName:     version.Name,
-		rootEncodedHash: buildCfg.RootHash,
+		rootEncodedHash: rootHash,
 		encoding:        encoding,
 		installDir:      installDir,
 		idxs:            idxEntries,

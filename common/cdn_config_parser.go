@@ -10,7 +10,7 @@ type CdnConfig struct {
 
 func ParseCdnConfig(r io.Reader) (CdnConfig, error) {
 	archives := "archives"
-	hashes, err := parseConfig(r, archives)
+	_, hashes, err := parseConfig(r, nil, []string{archives})
 	if err != nil {
 		return CdnConfig{}, err
 	}

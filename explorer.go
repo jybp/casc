@@ -17,6 +17,7 @@ type Storage interface {
 	//TODO all methods must be goroutine safe
 	App() string
 	Version() string
+	// Locales() ([]string, error) //todo parse .build.info (/versions) tags to find available locales (one per line)
 	RootHash() []byte
 	FromContentHash(hash []byte) ([]byte, error)
 }
