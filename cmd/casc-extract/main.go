@@ -16,19 +16,16 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/jybp/casc"
 	"github.com/jybp/casc/common"
-	"github.com/jybp/httpcache"
-	"github.com/jybp/httpcache/disk"
 )
 
 type logTransport struct{}
 
 func (logTransport) RoundTrip(r *http.Request) (*http.Response, error) {
-	fmt.Printf("http call (%s) %s\n", r.Method, r.URL)
+	fmt.Fprintf(common.Wlog, "http call (%s) %s %s\n", r.Method, r.URL, r.Header.Get("Range"))
 	return http.DefaultTransport.RoundTrip(r)
 }
 
@@ -83,13 +80,14 @@ func main() {
 		}
 		fmt.Fprintf(common.Wlog, "online with app: %s, region: %s, cdn region: %s, cache dir: %s\n",
 			app, region, cdn, cacheDir)
-		client := &http.Client{Transport: &httpcache.Transport{
-			Transport: transport,
-			Filter: func(r *http.Request) bool {
-				return strings.Contains(r.URL.String(), "patch.battle.net")
-			},
-			Cache: disk.Cache{Dir: cacheDir},
-		}}
+		// client := &http.Client{Transport: &httpcache.Transport{
+		// 	Transport: transport,
+		// 	Filter: func(r *http.Request) bool {
+		// 		return strings.Contains(r.URL.String(), "patch.battle.net")
+		// 	},
+		// 	Dir: cacheDir,
+		// }}
+		client := &http.Client{Transport: transport}
 		var err error
 		explorer, err = casc.NewOnlineExplorer(app, region, cdn, client)
 		if err != nil {

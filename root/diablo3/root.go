@@ -152,7 +152,7 @@ func NewRoot(root []byte, fetchFn func(contentHash []byte) ([]byte, error)) (*Ro
 	for _, dirEntry := range dirEntries {
 		dirB, err := fetchFn(dirEntry.ContentHash[:])
 		if err != nil {
-			// 'Mac' and 'Windows' dirEntry cannot be fetch. //TODO can it now with fix?
+			// 'Mac' and 'Windows' dirEntry cannot be locally fetch.
 			// Each language has a dirEntry that won't be referenced in the .idx if not installed.
 			continue
 		}

@@ -4,8 +4,6 @@ import (
 	"net/http"
 
 	"github.com/jybp/casc/common"
-	"github.com/jybp/casc/local"
-	"github.com/jybp/casc/online"
 	"github.com/jybp/casc/root/diablo3"
 	"github.com/jybp/casc/root/starcraft1"
 	"github.com/jybp/casc/root/warcraft3"
@@ -19,7 +17,7 @@ type Storage interface {
 	Version() string
 	// Locales() ([]string, error) //todo parse .build.info (/versions) tags to find available locales (one per line)
 	RootHash() []byte
-	FromContentHash(hash []byte) ([]byte, error)
+	FromContentHash(hash []byte) ([]byte, error) //TODO variadic function?
 }
 
 // Each app has its own way of relating file names to content hash.
@@ -37,7 +35,7 @@ type Explorer struct {
 
 // NewOnlineExplorer will use client to fetch CASC files.
 func NewOnlineExplorer(app, region, cdnRegion string, client *http.Client) (*Explorer, error) {
-	storage, err := online.NewStorage(app, region, cdnRegion, client)
+	storage, err := newOnlineStorage(app, region, cdnRegion, client)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +44,7 @@ func NewOnlineExplorer(app, region, cdnRegion string, client *http.Client) (*Exp
 
 // NewLocalExplorer will use files located under installDir to fetch CASC files.
 func NewLocalExplorer(installDir string) (*Explorer, error) {
-	local, err := local.NewStorage(installDir)
+	local, err := newLocalStorage(installDir)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +88,7 @@ func (e Explorer) Files() ([]string, error) {
 }
 
 // Extract extracts the file with the given filename.
-func (e Explorer) Extract(filename string) ([]byte, error) {
+func (e Explorer) Extract(filename string) ([]byte, error) { //TODO variadic function
 	contentHash, err := e.root.ContentHash(filename)
 	if err != nil {
 		return nil, err

@@ -1,5 +1,7 @@
 app = d3
-pattern = aenUS/SoundBank/D_x1_fortress_SpiritWell_02_Wizard/*
+pattern = enUS/Data_D3/Locale/enUS/Cutscenes/Cinematic_1*.ogv
+#pattern = enUS/SoundBank/D_x1_fortress_SpiritWell_02_Wizard/*
+#pattern = BlizzardError.exe
 dir = /Applications/Diablo III
 output = extract/$(app)
 

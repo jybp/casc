@@ -1,4 +1,4 @@
-// Package blte implements reading of LBTE format compressed data
+// Package blte implements reading of BLTE format compressed data
 package blte
 
 import (
@@ -106,10 +106,7 @@ func createReader(r io.Reader, usize, csize int, checksum [0x10]byte) (io.Reader
 		if errc := zlibReader.Close(); errc != nil {
 			return nil, errors.WithStack(errc)
 		}
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		return bytes.NewReader(uncompressed), nil
+		return bytes.NewReader(uncompressed), errors.WithStack(err)
 	default:
 		return nil, errors.WithStack(errors.Errorf("unsuported encoding type %+q", typ))
 	}

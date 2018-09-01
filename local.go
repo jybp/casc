@@ -1,4 +1,4 @@
-package local
+package casc
 
 import (
 	"bytes"
@@ -36,7 +36,7 @@ type local struct {
 	idxs            map[uint8][]common.IdxEntry
 }
 
-func NewStorage(installDir string) (*local, error) {
+func newLocalStorage(installDir string) (*local, error) {
 
 	//
 	// app & versionName
@@ -122,7 +122,7 @@ func NewStorage(installDir string) (*local, error) {
 		idxEntries[uint8(bucketID)] = append(idxEntries[uint8(bucketID)], indices...)
 	}
 
-	if len(buildCfg.EncodingHashes) < 2 { // TODO handle cases where only content hash provided
+	if len(buildCfg.EncodingHashes) < 2 {
 		return nil, errors.WithStack(errors.New("expected at least two encoding hash"))
 	}
 	encodingR, err := dataFromEncodedHash(buildCfg.EncodingHashes[1], installDir, idxEntries)
