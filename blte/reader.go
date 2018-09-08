@@ -1,4 +1,4 @@
-// Package blte implements reading of BLTE format compressed data
+// Package blte implements reading of BLTE format compressed data.
 package blte
 
 import (
@@ -7,6 +7,7 @@ import (
 	"crypto/md5"
 	"encoding/binary"
 	"fmt"
+	"hash"
 	"io"
 	"io/ioutil"
 
@@ -29,7 +30,8 @@ type chunkInfoEntry struct {
 	Checksum [0x10]uint8
 }
 
-// NewReader creates a new io.Reader. Reads from the returned Reader read and decompress data from r.
+// NewReader creates a new io.Reader.
+// Reads from the returned Reader read and decompress data from r.
 func NewReader(r io.Reader) (io.Reader, error) {
 	h := header{}
 	if err := binary.Read(r, binary.BigEndian, &h); err != nil {
@@ -56,62 +58,51 @@ func NewReader(r io.Reader) (io.Reader, error) {
 	if h.Size != 12+uint32(info.Count)*24 {
 		return nil, errors.WithStack(errors.Errorf("expected header size %d", h.Size))
 	}
-	return newBlteReader(r, entries), nil
+	return ioutil.NopCloser(newBlteReader(r, entries)), nil
 }
 
+// createReader returns a io.ReadCloser that decompress a data chunk.
+// Provide the zero values of usize, csize and checksum if the blte file has no header.
 func createReader(r io.Reader, usize, csize int, checksum [0x10]byte) (io.Reader, error) {
+	if !((csize > 0) == (usize > 0) == (checksum != ([0x10]byte{}))) {
+		return nil, errors.WithStack(errors.New("invalid chunk info entry"))
+	}
 	var typ uint8
 	if err := binary.Read(r, binary.BigEndian, &typ); err != nil {
 		return nil, errors.WithStack(err)
 	}
-	//TODO inefficient copy to check hash
-	var compressed []byte
-	var err error
-	if csize <= 0 {
-		compressed, err = ioutil.ReadAll(r)
-	} else {
-		compressed = make([]byte, csize)
-		_, err = io.ReadFull(r, compressed)
-	}
-	if err != nil {
-		return nil, errors.WithStack(err)
+	if csize > 0 {
+		r = io.LimitReader(r, int64(csize))
 	}
 	if checksum != ([0x10]byte{}) {
-		hash := md5.Sum(append([]byte{typ}, compressed...))
-		if bytes.Compare(checksum[:], hash[:]) != 0 {
-			return nil, errors.WithStack(errors.Errorf("expected checksum %x, got %x", checksum, hash))
-		}
+		digest := md5.New()
+		digest.Write([]byte{typ}) // md5 never returns an error.
+		r = &checksumReader{r: r, digest: digest, checksum: checksum}
 	}
+
 	switch typ {
 	case 'N':
 		if csize != usize {
 			return nil, errors.WithStack(
-				errors.New("compressed and uncompressed size should be the same"))
+				fmt.Errorf("compressed and uncompressed size should be equal %d != %d", csize, usize))
 		}
-		return bytes.NewReader(compressed), nil
 	case 'Z':
-		zlibReader, err := zlib.NewReader(bytes.NewReader(compressed))
+		zreader, err := zlib.NewReader(r)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
-		//TODO inefficient copy because zlibReader implements io.Closer
-		var uncompressed []byte
-		if usize <= 0 {
-			uncompressed, err = ioutil.ReadAll(zlibReader)
-			uncompressed = uncompressed[:len(uncompressed)-1]
-		} else {
-			uncompressed = make([]uint8, int(usize))
-			_, err = io.ReadFull(zlibReader, uncompressed)
-		}
-		if cerr := zlibReader.Close(); cerr != nil {
-			return nil, errors.WithStack(cerr)
-		}
-		return bytes.NewReader(uncompressed), errors.WithStack(err)
+		r = &eofCloser{r: zreader}
 	default:
 		return nil, errors.WithStack(errors.Errorf("unsuported encoding type %+q", typ))
 	}
+
+	if usize > 0 {
+		r = &sizeReader{r: r, size: usize}
+	}
+	return r, nil
 }
 
+// blteReader reads blte data consisting of multiple data chunks.
 type blteReader struct {
 	r       io.Reader
 	entries []chunkInfoEntry
@@ -154,4 +145,76 @@ func (r *blteReader) Read(b []byte) (int, error) {
 			return 0, io.EOF
 		}
 	}
+}
+
+// checksumReader checks the provided checksum when reaching io.EOF.
+type checksumReader struct {
+	r        io.Reader
+	digest   hash.Hash
+	checksum [0x10]byte
+
+	err error
+}
+
+func (c *checksumReader) Read(p []byte) (int, error) {
+	if c.err != nil {
+		return 0, c.err
+	}
+	var n int
+	n, c.err = c.r.Read(p)
+	c.digest.Write(p[0:n]) // MD5 never returns an error.
+	if c.err != io.EOF {
+		return n, c.err
+	}
+	hash := c.digest.Sum([]byte{})
+	if bytes.Compare(c.checksum[:], hash[:]) != 0 {
+		return n, errors.WithStack(errors.Errorf("invalid checksum %x expected %x", hash, c.checksum))
+	}
+	return n, io.EOF
+}
+
+// sizeReader checks the provided size when reaching io.EOF.
+type sizeReader struct {
+	r    io.Reader
+	size int
+
+	actual int
+	err    error
+}
+
+func (c *sizeReader) Read(p []byte) (int, error) {
+	if c.err != nil {
+		return 0, c.err
+	}
+	var n int
+	n, c.err = c.r.Read(p)
+	c.actual += n
+	if c.err != io.EOF {
+		return n, c.err
+	}
+	if c.size != c.actual {
+		return n, errors.WithStack(errors.Errorf("invalid size %d expected %d", c.actual, c.size))
+	}
+	return n, io.EOF
+}
+
+// silentCloser closes the provided io.ReadCloser when reaching io.EOF.
+type eofCloser struct {
+	r   io.ReadCloser
+	err error
+}
+
+func (c *eofCloser) Read(p []byte) (int, error) {
+	if c.err != nil {
+		return 0, c.err
+	}
+	var n int
+	n, c.err = c.r.Read(p)
+	if c.err != io.EOF {
+		return n, c.err
+	}
+	if cerr := c.r.Close(); cerr != nil {
+		return n, errors.WithStack(cerr)
+	}
+	return n, io.EOF
 }

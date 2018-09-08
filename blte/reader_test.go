@@ -18,13 +18,16 @@ func TestOneChunk(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	expected := []byte{'h', 'e', 'l', 'l', 'o', ',', ' ', 'w', 'o', 'r', 'l', 'd'}
+	expected := []byte{'h', 'e', 'l', 'l', 'o', ',', ' ', 'w', 'o', 'r', 'l', 'd', '\n'}
 	actual, err := ioutil.ReadAll(r)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if bytes.Compare(expected, actual) != 0 {
-		t.Fatalf("exected:%+v\nactual:%+v", expected, actual)
+		t.Fatalf("exected:%s\nactual:%s", expected, actual)
+	}
+	if err := r.Close(); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -33,7 +36,7 @@ func TestTwoChunks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	expected := []byte{'h', 'e', 'l', 'l', 'o', ',', ' ', 'w', 'o', 'r', 'l', 'd',
+	expected := []byte{'h', 'e', 'l', 'l', 'o', ',', ' ', 'w', 'o', 'r', 'l', 'd', '\n',
 		'h', 'e', 'l', 'l', 'o', ',', ' ', 'w', 'o', 'r', 'l', 'd'}
 	actual, err := ioutil.ReadAll(r)
 	if err != nil {
@@ -41,6 +44,9 @@ func TestTwoChunks(t *testing.T) {
 	}
 	if bytes.Compare(expected, actual) != 0 {
 		t.Fatalf("exected:%s\nactual:%s", expected, actual)
+	}
+	if err := r.Close(); err != nil {
+		t.Fatal(err)
 	}
 }
 
