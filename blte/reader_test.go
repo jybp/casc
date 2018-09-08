@@ -26,9 +26,6 @@ func TestOneChunk(t *testing.T) {
 	if bytes.Compare(expected, actual) != 0 {
 		t.Fatalf("exected:%s\nactual:%s", expected, actual)
 	}
-	if err := r.Close(); err != nil {
-		t.Fatal(err)
-	}
 }
 
 func TestTwoChunks(t *testing.T) {
@@ -44,9 +41,6 @@ func TestTwoChunks(t *testing.T) {
 	}
 	if bytes.Compare(expected, actual) != 0 {
 		t.Fatalf("exected:%s\nactual:%s", expected, actual)
-	}
-	if err := r.Close(); err != nil {
-		t.Fatal(err)
 	}
 }
 
@@ -65,7 +59,7 @@ func twoChunks() []byte {
 			/*unk  */ 0, 0,
 			/*count*/ 0, 2,
 			/*csize*/ 0, 0, 0, 25 + 1,
-			/*usize*/ 0, 0, 0, 12,
+			/*usize*/ 0, 0, 0, 13,
 		},
 		hashZ[:],
 		[]byte{

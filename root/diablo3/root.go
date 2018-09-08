@@ -223,12 +223,8 @@ func NewRoot(root []byte, fetchFn func(contentHash []byte) ([]byte, error)) (*Ro
 		if snoInfo.SnoGroupID >= 0 && int(snoInfo.SnoGroupID) < len(SnoExtensions) {
 			extension = SnoExtensions[snoInfo.SnoGroupID].Extension
 			extensionName = SnoExtensions[snoInfo.SnoGroupID].Name
-			//TODO Necromancer skillkit missing
-			if strings.Contains(extensionName, "SkillKit") {
-				fmt.Println(filename)
-			}
 		} else {
-			//extension not found in snoInfo, generate a random one
+			//extension not found in snoInfo, generate a 'random' one
 			ext := []rune{
 				rune('0') + rune(snoInfo.SnoGroupID/10),
 				rune('0') + rune(snoInfo.SnoGroupID%10),
@@ -409,7 +405,7 @@ func parseCoreToc(coreTocR io.ReadSeeker) (map[uint32]SnoInfo, error) {
 				return nil, errors.WithStack(err)
 			}
 			//names are stored after all entries
-			currentPos := coreTocHeaderSize + coreTocHeader.EntryOffsets[i] + 4*3*j
+			currentPos := coreTocHeaderSize + coreTocHeader.EntryOffsets[i] + 4*3*(j+1)
 			nameOffset = coreTocHeaderSize + coreTocHeader.EntryOffsets[i] + 4*3*coreTocHeader.EntryCounts[i] + nameOffset
 			if _, err := coreTocR.Seek(int64(nameOffset), io.SeekStart); err != nil {
 				return nil, errors.WithStack(err)

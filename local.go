@@ -21,7 +21,7 @@ var productToApps = map[string]string{
 	"Diablo3": common.Diablo3,
 	// "Hero":common.HeroesOfTheStorm,
 	// "Prometheus":common.Overwatch,
-	"Starcraft1": common.Starcraft1,
+	"StarCraft1": common.Starcraft1,
 	// "SC2": common.Starcraft2,
 	"War3": common.Warcraft3,
 	// "WoW":common.WorldOfWarcraft,

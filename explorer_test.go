@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strconv"
 
 	"strings"
 	"testing"
@@ -48,7 +49,7 @@ func TestExtract(t *testing.T) {
 
 func testExtractApp(t *testing.T, app, installDir string) {
 	if testing.Verbose() {
-		fmt.Printf("%s: %s\n", app, installDir)
+		t.Logf("%s: %s\n", app, installDir)
 	}
 	files, err := ioutil.ReadDir("testdata")
 	if err != nil {
@@ -70,21 +71,77 @@ func testExtractApp(t *testing.T, app, installDir string) {
 
 	cascLib := testLoadFile(t, fmt.Sprintf("testdata/%s", cascFilename))
 	self := testLoadFile(t, fmt.Sprintf("testdata/%s", selfFilename))
-	skipped := 0
+	selfmap := map[string]struct{}{} // performance
+	for _, s := range self {
+		selfmap[s] = struct{}{}
+	}
 	for i := 0; i < len(cascLib); i++ {
-		if !strings.Contains(cascLib[i], ".") { //ignore cascLib folders
-			skipped++
+		if strings.TrimSpace(cascLib[i]) == "" {
 			continue
+		}
+		size, err := strconv.Atoi(cascLib[i][strings.LastIndex(cascLib[i], " ")+1:])
+		if err != nil {
+			t.Fatalf("invalid size %s: %+v", cascLib[i], err)
+		}
+		if size == 0 || size == 64 {
+			continue //ignore cascLib folders
 		}
 		if testing.Verbose() {
 			fmt.Printf("\r%d/%d", i+1, len(cascLib))
 		}
-		if !stringInSlice(cascLib[i], self) {
-			t.Errorf("\n%s\n", cascLib[i])
+
+		if _, ok := selfmap[cascLib[i]]; ok {
+			continue
 		}
+
+		// casclib extracts these common Warcraft 3 files.
+		commonFiles := []string{}
+		if app == common.Warcraft3 {
+			commonFiles = []string{"download", "encoding", "install", "root", "index"}
+		}
+		// casclib extracts these common Diablo 3 files.
+		if app == common.Diablo3 {
+			commonFiles = []string{"download", "encoding", "install", "root"}
+		}
+		if len(commonFiles) > 0 {
+			found := false
+			for _, f := range commonFiles {
+				if strings.HasPrefix(cascLib[i], f) {
+					found = true
+					break
+				}
+			}
+			if found {
+				continue
+			}
+		}
+
+		//TODO casclib doesn't convert sbk extension for Diablo 3?
+		if app == common.Diablo3 {
+			idxDot := strings.LastIndex(cascLib[i], ".")
+			if idxDot > 0 {
+				ext := cascLib[i][idxDot+1 : idxDot+4]
+				if ext == "sbk" {
+					found := false
+					for _, s := range self { // slow
+						if len(s) < idxDot+4 {
+							continue
+						}
+						if s[:idxDot+1] == cascLib[i][:idxDot+1] &&
+							s[idxDot+4:] == cascLib[i][idxDot+4:] {
+							found = true
+						}
+					}
+					if found {
+						continue
+					}
+				}
+			}
+		}
+		t.Errorf("\n%s\n", cascLib[i])
 	}
 	if testing.Verbose() {
-		fmt.Printf("\n%d skipped\n", skipped)
+		fmt.Print("\n")
 	}
 }
 
@@ -101,15 +158,6 @@ func testLoadFile(t *testing.T, filename string) []string {
 	return lines
 }
 
-func stringInSlice(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
-}
-
 func testUpdate(t *testing.T, app, installDir string) {
 	dir, close := testTempDir(t)
 	defer close()
@@ -124,12 +172,16 @@ func testUpdate(t *testing.T, app, installDir string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, f := range files {
+	for i, f := range files {
+		if testing.Verbose() {
+			fmt.Printf("\r%d/%d", i+1, len(files))
+		}
 		b, err := explorer.Extract(f)
 		if err != nil {
 			t.Errorf("error extracting %s: %s", f, err.Error())
 			continue
 		}
+		// force backslashes like casclib
 		fo := filepath.Join(dir, strings.Replace(f, "/", "\\", -1))
 		if err := ioutil.WriteFile(fo, b, 0777); err != nil {
 			t.Errorf("error writing %s: %s", fo, err.Error())

@@ -3115,7 +3115,6 @@ SD\campaign\Protoss\tutorial\staredit\wav\p1b02pad.wav 953870
 SD\campaign\Protoss\tutorial\staredit\wav\p1m00ufe.wav 647348
 SD\campaign\Protoss\tutorial\staredit\wav\p1m20ufe.wav 835014
 SD\campaign\Protoss\tutorial\staredit\wav\p1m40ufe.wav 549958
-SD\campaign\Starcraft\SWAR\staredit\scenario.chk 0
 SD\campaign\TerranED\Terran01\staredit\scenario.chk 121323
 SD\campaign\TerranED\Terran02\staredit\scenario.chk 240387
 SD\campaign\TerranED\Terran03\staredit\scenario.chk 134745
@@ -8735,7 +8734,6 @@ locales\deDE\Assets\SD\campaign\Protoss\Protoss08\staredit\wav\pshbld03.wav 1957
 locales\deDE\Assets\SD\campaign\Protoss\Protoss09\staredit\wav\combeep0.wav 17902
 locales\deDE\Assets\SD\campaign\Protoss\Protoss10\staredit\wav\combeep0.wav 17902
 locales\deDE\Assets\SD\campaign\Protoss\tutorial\staredit\scenario.chk 126697
-locales\deDE\Assets\SD\campaign\Starcraft\SWAR\staredit\scenario.chk 0
 locales\deDE\Assets\SD\campaign\TerranED\Terran01\staredit\scenario.chk 121323
 locales\deDE\Assets\SD\campaign\TerranED\Terran02\staredit\scenario.chk 240387
 locales\deDE\Assets\SD\campaign\TerranED\Terran03\staredit\scenario.chk 134745
@@ -8815,7 +8813,6 @@ locales\deDE\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavwht01.ogg 1687
 locales\deDE\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavyes00.ogg 25420
 locales\deDE\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavyes01.ogg 29322
 locales\deDE\Assets\campaign\EXPProtoss\Protoss02\staredit\wav\combeep0.ogg 11355
-locales\deDE\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\nullsound.ogg 0
 locales\deDE\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\pshtra00.ogg 36412
 locales\deDE\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\pshwht00.ogg 28874
 locales\deDE\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\zovtra01.ogg 26158
@@ -8826,7 +8823,6 @@ locales\deDE\Assets\campaign\EXPProtoss\Protoss05\staredit\wav\combeep0.ogg 1135
 locales\deDE\Assets\campaign\EXPProtoss\Protoss05\staredit\wav\tpwrdown.ogg 44137
 locales\deDE\Assets\campaign\EXPProtoss\Protoss06\staredit\wav\prescue.ogg 28180
 locales\deDE\Assets\campaign\EXPProtoss\Protoss06\staredit\wav\pshtra00.ogg 36412
-locales\deDE\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\nullsound.ogg 0
 locales\deDE\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\pshtra00.ogg 36412
 locales\deDE\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\zovtra00.ogg 25963
 locales\deDE\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\zovtra01.ogg 21805
@@ -9094,7 +9090,6 @@ locales\enUS\Assets\campaign\EXPProtoss\Protoss02\staredit\wav\pdtwht01.ogg 3216
 locales\enUS\Assets\campaign\EXPProtoss\Protoss02\staredit\wav\pdtwht03.ogg 27897
 locales\enUS\Assets\campaign\EXPProtoss\Protoss02\staredit\wav\pdtyes01.ogg 21132
 locales\enUS\Assets\campaign\EXPProtoss\Protoss03\staredit\scenario.chk 226540
-locales\enUS\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\nullsound.ogg 0
 locales\enUS\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\p3b00ras.ogg 924416
 locales\enUS\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\p3b01pad.ogg 148267
 locales\enUS\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\p3b02ras.ogg 709998
@@ -9162,7 +9157,6 @@ locales\enUS\Assets\campaign\EXPProtoss\Protoss06\staredit\wav\p6m20art.ogg 2316
 locales\enUS\Assets\campaign\EXPProtoss\Protoss06\staredit\wav\prescue.ogg 28180
 locales\enUS\Assets\campaign\EXPProtoss\Protoss06\staredit\wav\pshtra00.ogg 36412
 locales\enUS\Assets\campaign\EXPProtoss\Protoss07\staredit\scenario.chk 269783
-locales\enUS\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\nullsound.ogg 0
 locales\enUS\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\p7b00ras.ogg 356167
 locales\enUS\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\p7b01zer.ogg 139472
 locales\enUS\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\p7b02ras.ogg 308410
@@ -10667,7 +10661,6 @@ locales\esES\Assets\SD\campaign\Protoss\Protoss08\staredit\wav\pshbld03.wav 1957
 locales\esES\Assets\SD\campaign\Protoss\Protoss09\staredit\wav\combeep0.wav 17902
 locales\esES\Assets\SD\campaign\Protoss\Protoss10\staredit\wav\combeep0.wav 17902
 locales\esES\Assets\SD\campaign\Protoss\tutorial\staredit\scenario.chk 126697
-locales\esES\Assets\SD\campaign\Starcraft\SWAR\staredit\scenario.chk 0
 locales\esES\Assets\SD\campaign\TerranED\Terran01\staredit\scenario.chk 121323
 locales\esES\Assets\SD\campaign\TerranED\Terran02\staredit\scenario.chk 240387
 locales\esES\Assets\SD\campaign\TerranED\Terran03\staredit\scenario.chk 134745
@@ -10767,7 +10760,6 @@ locales\esES\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavwht01.ogg 1687
 locales\esES\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavyes00.ogg 25420
 locales\esES\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavyes01.ogg 29322
 locales\esES\Assets\campaign\EXPProtoss\Protoss02\staredit\wav\combeep0.ogg 11355
-locales\esES\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\nullsound.ogg 0
 locales\esES\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\pshtra00.ogg 36412
 locales\esES\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\pshwht00.ogg 28874
 locales\esES\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\zovtra01.ogg 26158
@@ -10778,7 +10770,6 @@ locales\esES\Assets\campaign\EXPProtoss\Protoss05\staredit\wav\combeep0.ogg 1135
 locales\esES\Assets\campaign\EXPProtoss\Protoss05\staredit\wav\tpwrdown.ogg 44137
 locales\esES\Assets\campaign\EXPProtoss\Protoss06\staredit\wav\prescue.ogg 28180
 locales\esES\Assets\campaign\EXPProtoss\Protoss06\staredit\wav\pshtra00.ogg 36412
-locales\esES\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\nullsound.ogg 0
 locales\esES\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\pshtra00.ogg 36412
 locales\esES\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\zovtra00.ogg 25963
 locales\esES\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\zovtra01.ogg 21805
@@ -10960,7 +10951,6 @@ locales\esMX\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavwht01.ogg 1687
 locales\esMX\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavyes00.ogg 25420
 locales\esMX\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavyes01.ogg 29322
 locales\esMX\Assets\campaign\EXPProtoss\Protoss02\staredit\wav\combeep0.ogg 11355
-locales\esMX\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\nullsound.ogg 0
 locales\esMX\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\pshtra00.ogg 36412
 locales\esMX\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\pshwht00.ogg 28874
 locales\esMX\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\zovtra01.ogg 26158
@@ -10971,7 +10961,6 @@ locales\esMX\Assets\campaign\EXPProtoss\Protoss05\staredit\wav\combeep0.ogg 1135
 locales\esMX\Assets\campaign\EXPProtoss\Protoss05\staredit\wav\tpwrdown.ogg 44137
 locales\esMX\Assets\campaign\EXPProtoss\Protoss06\staredit\wav\prescue.ogg 28180
 locales\esMX\Assets\campaign\EXPProtoss\Protoss06\staredit\wav\pshtra00.ogg 36412
-locales\esMX\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\nullsound.ogg 0
 locales\esMX\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\pshtra00.ogg 36412
 locales\esMX\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\zovtra00.ogg 25963
 locales\esMX\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\zovtra01.ogg 21805
@@ -11177,7 +11166,6 @@ locales\frFR\Assets\SD\campaign\Protoss\Protoss08\staredit\wav\combeep1.wav 2240
 locales\frFR\Assets\SD\campaign\Protoss\Protoss08\staredit\wav\pshbld03.wav 195718
 locales\frFR\Assets\SD\campaign\Protoss\Protoss09\staredit\wav\combeep0.wav 17902
 locales\frFR\Assets\SD\campaign\Protoss\Protoss10\staredit\wav\combeep0.wav 17902
-locales\frFR\Assets\SD\campaign\Starcraft\SWAR\staredit\scenario.chk 0
 locales\frFR\Assets\SD\campaign\TerranED\Terran01\staredit\scenario.chk 121323
 locales\frFR\Assets\SD\campaign\TerranED\Terran02\staredit\scenario.chk 240387
 locales\frFR\Assets\SD\campaign\TerranED\Terran03\staredit\scenario.chk 134745
@@ -11298,7 +11286,6 @@ locales\frFR\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavwht01.ogg 1687
 locales\frFR\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavyes00.ogg 25420
 locales\frFR\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavyes01.ogg 29322
 locales\frFR\Assets\campaign\EXPProtoss\Protoss02\staredit\wav\combeep0.ogg 11355
-locales\frFR\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\nullsound.ogg 0
 locales\frFR\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\pshtra00.ogg 36412
 locales\frFR\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\pshwht00.ogg 28874
 locales\frFR\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\zovtra01.ogg 26158
@@ -11309,7 +11296,6 @@ locales\frFR\Assets\campaign\EXPProtoss\Protoss05\staredit\wav\combeep0.ogg 1135
 locales\frFR\Assets\campaign\EXPProtoss\Protoss05\staredit\wav\tpwrdown.ogg 44137
 locales\frFR\Assets\campaign\EXPProtoss\Protoss06\staredit\wav\prescue.ogg 28180
 locales\frFR\Assets\campaign\EXPProtoss\Protoss06\staredit\wav\pshtra00.ogg 36412
-locales\frFR\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\nullsound.ogg 0
 locales\frFR\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\pshtra00.ogg 36412
 locales\frFR\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\zovtra00.ogg 25963
 locales\frFR\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\zovtra01.ogg 21805
@@ -11559,7 +11545,6 @@ locales\itIT\Assets\SD\campaign\Protoss\Protoss08\staredit\wav\combeep1.wav 2240
 locales\itIT\Assets\SD\campaign\Protoss\Protoss08\staredit\wav\pshbld03.wav 195718
 locales\itIT\Assets\SD\campaign\Protoss\Protoss09\staredit\wav\combeep0.wav 17902
 locales\itIT\Assets\SD\campaign\Protoss\Protoss10\staredit\wav\combeep0.wav 17902
-locales\itIT\Assets\SD\campaign\Starcraft\SWAR\staredit\scenario.chk 0
 locales\itIT\Assets\SD\campaign\TerranED\Terran01\staredit\scenario.chk 121323
 locales\itIT\Assets\SD\campaign\TerranED\Terran02\staredit\scenario.chk 240387
 locales\itIT\Assets\SD\campaign\TerranED\Terran03\staredit\scenario.chk 134745
@@ -11642,7 +11627,6 @@ locales\itIT\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavwht01.ogg 1687
 locales\itIT\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavyes00.ogg 25420
 locales\itIT\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavyes01.ogg 29322
 locales\itIT\Assets\campaign\EXPProtoss\Protoss02\staredit\wav\combeep0.ogg 11355
-locales\itIT\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\nullsound.ogg 0
 locales\itIT\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\pshtra00.ogg 36412
 locales\itIT\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\pshwht00.ogg 28874
 locales\itIT\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\zovtra01.ogg 26158
@@ -11653,7 +11637,6 @@ locales\itIT\Assets\campaign\EXPProtoss\Protoss05\staredit\wav\combeep0.ogg 1135
 locales\itIT\Assets\campaign\EXPProtoss\Protoss05\staredit\wav\tpwrdown.ogg 44137
 locales\itIT\Assets\campaign\EXPProtoss\Protoss06\staredit\wav\prescue.ogg 28180
 locales\itIT\Assets\campaign\EXPProtoss\Protoss06\staredit\wav\pshtra00.ogg 36412
-locales\itIT\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\nullsound.ogg 0
 locales\itIT\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\pshtra00.ogg 36412
 locales\itIT\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\zovtra00.ogg 25963
 locales\itIT\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\zovtra01.ogg 21805
@@ -11836,7 +11819,6 @@ locales\jaJP\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavwht01.ogg 1687
 locales\jaJP\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavyes00.ogg 25420
 locales\jaJP\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavyes01.ogg 29322
 locales\jaJP\Assets\campaign\EXPProtoss\Protoss02\staredit\wav\combeep0.ogg 11355
-locales\jaJP\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\nullsound.ogg 0
 locales\jaJP\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\pshtra00.ogg 36412
 locales\jaJP\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\pshwht00.ogg 28874
 locales\jaJP\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\zovtra01.ogg 26158
@@ -11847,7 +11829,6 @@ locales\jaJP\Assets\campaign\EXPProtoss\Protoss05\staredit\wav\combeep0.ogg 1135
 locales\jaJP\Assets\campaign\EXPProtoss\Protoss05\staredit\wav\tpwrdown.ogg 44137
 locales\jaJP\Assets\campaign\EXPProtoss\Protoss06\staredit\wav\prescue.ogg 28180
 locales\jaJP\Assets\campaign\EXPProtoss\Protoss06\staredit\wav\pshtra00.ogg 36412
-locales\jaJP\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\nullsound.ogg 0
 locales\jaJP\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\pshtra00.ogg 36412
 locales\jaJP\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\zovtra00.ogg 25963
 locales\jaJP\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\zovtra01.ogg 21805
@@ -12030,7 +12011,6 @@ locales\koKR\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavwht01.ogg 1687
 locales\koKR\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavyes00.ogg 25420
 locales\koKR\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavyes01.ogg 29322
 locales\koKR\Assets\campaign\EXPProtoss\Protoss02\staredit\wav\combeep0.ogg 11355
-locales\koKR\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\nullsound.ogg 0
 locales\koKR\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\nullsound.wav 266
 locales\koKR\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\pshtra00.ogg 36412
 locales\koKR\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\pshwht00.ogg 28874
@@ -12042,7 +12022,6 @@ locales\koKR\Assets\campaign\EXPProtoss\Protoss05\staredit\wav\combeep0.ogg 1135
 locales\koKR\Assets\campaign\EXPProtoss\Protoss05\staredit\wav\tpwrdown.ogg 44137
 locales\koKR\Assets\campaign\EXPProtoss\Protoss06\staredit\wav\prescue.ogg 28180
 locales\koKR\Assets\campaign\EXPProtoss\Protoss06\staredit\wav\pshtra00.ogg 36412
-locales\koKR\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\nullsound.ogg 0
 locales\koKR\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\nullsound.wav 266
 locales\koKR\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\pshtra00.ogg 36412
 locales\koKR\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\zovtra00.ogg 25963
@@ -12232,7 +12211,6 @@ locales\koUS\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavwht01.ogg 1687
 locales\koUS\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavyes00.ogg 25420
 locales\koUS\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavyes01.ogg 29322
 locales\koUS\Assets\campaign\EXPProtoss\Protoss02\staredit\wav\combeep0.ogg 11355
-locales\koUS\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\nullsound.ogg 0
 locales\koUS\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\pshtra00.ogg 36412
 locales\koUS\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\pshwht00.ogg 28874
 locales\koUS\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\zovtra01.ogg 26158
@@ -12243,7 +12221,6 @@ locales\koUS\Assets\campaign\EXPProtoss\Protoss05\staredit\wav\combeep0.ogg 1135
 locales\koUS\Assets\campaign\EXPProtoss\Protoss05\staredit\wav\tpwrdown.ogg 44137
 locales\koUS\Assets\campaign\EXPProtoss\Protoss06\staredit\wav\prescue.ogg 28180
 locales\koUS\Assets\campaign\EXPProtoss\Protoss06\staredit\wav\pshtra00.ogg 36412
-locales\koUS\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\nullsound.ogg 0
 locales\koUS\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\pshtra00.ogg 36412
 locales\koUS\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\zovtra00.ogg 25963
 locales\koUS\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\zovtra01.ogg 21805
@@ -12433,7 +12410,6 @@ locales\plPL\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavwht01.ogg 1687
 locales\plPL\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavyes00.ogg 25420
 locales\plPL\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavyes01.ogg 29322
 locales\plPL\Assets\campaign\EXPProtoss\Protoss02\staredit\wav\combeep0.ogg 11355
-locales\plPL\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\nullsound.ogg 0
 locales\plPL\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\pshtra00.ogg 36412
 locales\plPL\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\pshwht00.ogg 28874
 locales\plPL\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\zovtra01.ogg 26158
@@ -12444,7 +12420,6 @@ locales\plPL\Assets\campaign\EXPProtoss\Protoss05\staredit\wav\combeep0.ogg 1135
 locales\plPL\Assets\campaign\EXPProtoss\Protoss05\staredit\wav\tpwrdown.ogg 44137
 locales\plPL\Assets\campaign\EXPProtoss\Protoss06\staredit\wav\prescue.ogg 28180
 locales\plPL\Assets\campaign\EXPProtoss\Protoss06\staredit\wav\pshtra00.ogg 36412
-locales\plPL\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\nullsound.ogg 0
 locales\plPL\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\pshtra00.ogg 36412
 locales\plPL\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\zovtra00.ogg 25963
 locales\plPL\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\zovtra01.ogg 21805
@@ -12651,7 +12626,6 @@ locales\ptBR\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavwht01.ogg 1687
 locales\ptBR\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavyes00.ogg 25420
 locales\ptBR\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavyes01.ogg 29322
 locales\ptBR\Assets\campaign\EXPProtoss\Protoss02\staredit\wav\combeep0.ogg 11355
-locales\ptBR\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\nullsound.ogg 0
 locales\ptBR\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\pshtra00.ogg 36412
 locales\ptBR\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\pshwht00.ogg 28874
 locales\ptBR\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\zovtra01.ogg 26158
@@ -12662,7 +12636,6 @@ locales\ptBR\Assets\campaign\EXPProtoss\Protoss05\staredit\wav\combeep0.ogg 1135
 locales\ptBR\Assets\campaign\EXPProtoss\Protoss05\staredit\wav\tpwrdown.ogg 44137
 locales\ptBR\Assets\campaign\EXPProtoss\Protoss06\staredit\wav\prescue.ogg 28180
 locales\ptBR\Assets\campaign\EXPProtoss\Protoss06\staredit\wav\pshtra00.ogg 36412
-locales\ptBR\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\nullsound.ogg 0
 locales\ptBR\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\pshtra00.ogg 36412
 locales\ptBR\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\zovtra00.ogg 25963
 locales\ptBR\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\zovtra01.ogg 21805
@@ -12860,7 +12833,6 @@ locales\ruRU\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavwht01.ogg 1687
 locales\ruRU\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavyes00.ogg 25420
 locales\ruRU\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavyes01.ogg 29322
 locales\ruRU\Assets\campaign\EXPProtoss\Protoss02\staredit\wav\combeep0.ogg 11355
-locales\ruRU\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\nullsound.ogg 0
 locales\ruRU\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\pshtra00.ogg 36412
 locales\ruRU\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\pshwht00.ogg 28874
 locales\ruRU\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\zovtra01.ogg 26158
@@ -12871,7 +12843,6 @@ locales\ruRU\Assets\campaign\EXPProtoss\Protoss05\staredit\wav\combeep0.ogg 1135
 locales\ruRU\Assets\campaign\EXPProtoss\Protoss05\staredit\wav\tpwrdown.ogg 44137
 locales\ruRU\Assets\campaign\EXPProtoss\Protoss06\staredit\wav\prescue.ogg 28180
 locales\ruRU\Assets\campaign\EXPProtoss\Protoss06\staredit\wav\pshtra00.ogg 36412
-locales\ruRU\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\nullsound.ogg 0
 locales\ruRU\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\pshtra00.ogg 36412
 locales\ruRU\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\zovtra00.ogg 25963
 locales\ruRU\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\zovtra01.ogg 21805
@@ -13078,7 +13049,6 @@ locales\zhCN\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavwht01.ogg 1687
 locales\zhCN\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavyes00.ogg 25420
 locales\zhCN\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavyes01.ogg 29322
 locales\zhCN\Assets\campaign\EXPProtoss\Protoss02\staredit\wav\combeep0.ogg 11355
-locales\zhCN\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\nullsound.ogg 0
 locales\zhCN\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\pshtra00.ogg 36412
 locales\zhCN\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\pshwht00.ogg 28874
 locales\zhCN\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\zovtra01.ogg 26158
@@ -13089,7 +13059,6 @@ locales\zhCN\Assets\campaign\EXPProtoss\Protoss05\staredit\wav\combeep0.ogg 1135
 locales\zhCN\Assets\campaign\EXPProtoss\Protoss05\staredit\wav\tpwrdown.ogg 44137
 locales\zhCN\Assets\campaign\EXPProtoss\Protoss06\staredit\wav\prescue.ogg 28180
 locales\zhCN\Assets\campaign\EXPProtoss\Protoss06\staredit\wav\pshtra00.ogg 36412
-locales\zhCN\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\nullsound.ogg 0
 locales\zhCN\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\pshtra00.ogg 36412
 locales\zhCN\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\zovtra00.ogg 25963
 locales\zhCN\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\zovtra01.ogg 21805
@@ -13342,7 +13311,6 @@ locales\zhTW\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavwht01.ogg 1687
 locales\zhTW\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavyes00.ogg 25420
 locales\zhTW\Assets\campaign\EXPProtoss\Protoss01\staredit\wav\zavyes01.ogg 29322
 locales\zhTW\Assets\campaign\EXPProtoss\Protoss02\staredit\wav\combeep0.ogg 11355
-locales\zhTW\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\nullsound.ogg 0
 locales\zhTW\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\pshtra00.ogg 36412
 locales\zhTW\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\pshwht00.ogg 28874
 locales\zhTW\Assets\campaign\EXPProtoss\Protoss03\staredit\wav\zovtra01.ogg 26158
@@ -13353,7 +13321,6 @@ locales\zhTW\Assets\campaign\EXPProtoss\Protoss05\staredit\wav\combeep0.ogg 1135
 locales\zhTW\Assets\campaign\EXPProtoss\Protoss05\staredit\wav\tpwrdown.ogg 44137
 locales\zhTW\Assets\campaign\EXPProtoss\Protoss06\staredit\wav\prescue.ogg 28180
 locales\zhTW\Assets\campaign\EXPProtoss\Protoss06\staredit\wav\pshtra00.ogg 36412
-locales\zhTW\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\nullsound.ogg 0
 locales\zhTW\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\pshtra00.ogg 36412
 locales\zhTW\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\zovtra00.ogg 25963
 locales\zhTW\Assets\campaign\EXPProtoss\Protoss07\staredit\wav\zovtra01.ogg 21805

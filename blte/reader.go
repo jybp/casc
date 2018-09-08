@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"hash"
 	"io"
-	"io/ioutil"
 
 	"github.com/pkg/errors"
 )
@@ -47,6 +46,9 @@ func NewReader(r io.Reader) (io.Reader, error) {
 	if err := binary.Read(r, binary.BigEndian, &info); err != nil {
 		return nil, errors.WithStack(err)
 	}
+	if h.Size != 12+uint32(info.Count)*24 {
+		return nil, errors.WithStack(errors.Errorf("expected header size %d", h.Size))
+	}
 	entries := []chunkInfoEntry{}
 	for i := uint16(0); i < uint16(info.Count); i++ {
 		entry := chunkInfoEntry{}
@@ -55,16 +57,14 @@ func NewReader(r io.Reader) (io.Reader, error) {
 		}
 		entries = append(entries, entry)
 	}
-	if h.Size != 12+uint32(info.Count)*24 {
-		return nil, errors.WithStack(errors.Errorf("expected header size %d", h.Size))
-	}
-	return ioutil.NopCloser(newBlteReader(r, entries)), nil
+	return &chunksReader{r: r, entries: entries}, nil
 }
 
-// createReader returns a io.ReadCloser that decompress a data chunk.
+// createReader returns a io.Reader that decompress a data chunk.
 // Provide the zero values of usize, csize and checksum if the blte file has no header.
 func createReader(r io.Reader, usize, csize int, checksum [0x10]byte) (io.Reader, error) {
-	if !((csize > 0) == (usize > 0) == (checksum != ([0x10]byte{}))) {
+	allOrNone := (csize > 0) == (usize > 0) && (usize > 0) == (checksum != [0x10]byte{})
+	if !allOrNone {
 		return nil, errors.WithStack(errors.New("invalid chunk info entry"))
 	}
 	var typ uint8
@@ -74,9 +74,9 @@ func createReader(r io.Reader, usize, csize int, checksum [0x10]byte) (io.Reader
 	if csize > 0 {
 		r = io.LimitReader(r, int64(csize))
 	}
-	if checksum != ([0x10]byte{}) {
+	if checksum != [0x10]byte{} {
 		digest := md5.New()
-		digest.Write([]byte{typ}) // md5 never returns an error.
+		digest.Write([]byte{typ}) // MD5 never returns an error on Write.
 		r = &checksumReader{r: r, digest: digest, checksum: checksum}
 	}
 
@@ -102,19 +102,16 @@ func createReader(r io.Reader, usize, csize int, checksum [0x10]byte) (io.Reader
 	return r, nil
 }
 
-// blteReader reads blte data consisting of multiple data chunks.
-type blteReader struct {
+// chunksReader reads blte data consisting of multiple chunks.
+type chunksReader struct {
 	r       io.Reader
 	entries []chunkInfoEntry
-	index   int
-	next    io.Reader
+
+	index int
+	next  io.Reader
 }
 
-func newBlteReader(r io.Reader, entries []chunkInfoEntry) io.Reader {
-	return &blteReader{r: r, entries: entries}
-}
-
-func (r *blteReader) step() error {
+func (r *chunksReader) step() error {
 	if r.index >= len(r.entries) {
 		r.next = nil
 		return nil
@@ -128,7 +125,7 @@ func (r *blteReader) step() error {
 	return err
 }
 
-func (r *blteReader) Read(b []byte) (int, error) {
+func (r *chunksReader) Read(b []byte) (int, error) {
 	for {
 		if r.next != nil {
 			n, err := r.next.Read(b)
@@ -162,7 +159,7 @@ func (c *checksumReader) Read(p []byte) (int, error) {
 	}
 	var n int
 	n, c.err = c.r.Read(p)
-	c.digest.Write(p[0:n]) // MD5 never returns an error.
+	c.digest.Write(p[0:n]) // MD5 never returns an error on Write.
 	if c.err != io.EOF {
 		return n, c.err
 	}
@@ -173,7 +170,7 @@ func (c *checksumReader) Read(p []byte) (int, error) {
 	return n, io.EOF
 }
 
-// sizeReader checks the provided size when reaching io.EOF.
+// sizeReader checks size bytes were read when io.EOF is reached.
 type sizeReader struct {
 	r    io.Reader
 	size int
@@ -198,7 +195,7 @@ func (c *sizeReader) Read(p []byte) (int, error) {
 	return n, io.EOF
 }
 
-// silentCloser closes the provided io.ReadCloser when reaching io.EOF.
+// eofCloser closes r when reaching io.EOF.
 type eofCloser struct {
 	r   io.ReadCloser
 	err error
