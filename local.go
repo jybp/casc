@@ -36,7 +36,7 @@ type local struct {
 	idxs            map[uint8][]common.IdxEntry
 }
 
-func newLocalStorage(installDir string) (*local, error) {
+func newLocalStorage(installDir string) (l *local, err error) {
 
 	//
 	// app & versionName
@@ -109,13 +109,17 @@ func newLocalStorage(installDir string) (*local, error) {
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
+		defer func() {
+			if cerr := f.Close(); cerr != nil {
+				err = cerr
+			}
+		}()
 		bucketID, err := strconv.ParseUint(string(name[1]), 16, 8)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 		fmt.Fprintf(common.Wlog, "bucket %x: %s\n", uint8(bucketID), name)
 		indices, err := common.ParseIdx(f)
-		f.Close()
 		if err != nil {
 			return nil, err
 		}
@@ -193,7 +197,7 @@ func findIdx(hash []byte, idxs []common.IdxEntry) (common.IdxEntry, error) {
 	return foundIdx, nil
 }
 
-func dataFromEncodedHash(hash []byte, installDir string, idxs map[uint8][]common.IdxEntry) ([]byte, error) {
+func dataFromEncodedHash(hash []byte, installDir string, idxs map[uint8][]common.IdxEntry) (b []byte, err error) {
 	bucketID, err := bucketID(hash)
 	if err != nil {
 		return nil, err
@@ -211,18 +215,26 @@ func dataFromEncodedHash(hash []byte, installDir string, idxs map[uint8][]common
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	defer f.Close()
+	defer func() {
+		if cerr := f.Close(); cerr != nil {
+			err = cerr
+		}
+	}()
 	if _, err := f.Seek(int64(idx.Offset), io.SeekStart); err != nil {
 		return nil, errors.WithStack(err)
 	}
+	// first 9 bytes of reversed blteHash must match hash
 	blteHash := make([]byte, 16)
 	if err := binary.Read(f, binary.LittleEndian, &blteHash); err != nil {
 		return nil, errors.WithStack(err)
 	}
-	for i := len(blteHash)/2 - 1; i >= 0; i-- { //reverse blteHash
+	for i := len(blteHash)/2 - 1; i >= 0; i-- { //reverse
 		opp := len(blteHash) - 1 - i
 		blteHash[i], blteHash[opp] = blteHash[opp], blteHash[i]
-	} //TODO check blteHash against hash
+	}
+	if len(hash) < 9 || bytes.Compare(blteHash[:9], hash[:9]) != 0 {
+		return nil, errors.WithStack(errors.New("corrupted local file"))
+	}
 	var size uint32
 	if err := binary.Read(f, binary.LittleEndian, &size); err != nil {
 		return nil, errors.WithStack(err)
@@ -237,5 +249,9 @@ func dataFromEncodedHash(hash []byte, installDir string, idxs map[uint8][]common
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	return ioutil.ReadAll(blteReader)
+	b, err = ioutil.ReadAll(blteReader)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return b, nil
 }

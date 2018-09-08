@@ -32,12 +32,16 @@ type online struct {
 }
 
 func newOnlineStorage(app, region, cdnRegion string, client *http.Client) (*online, error) {
-	downloadFn := func(rawurl string) ([]byte, error) {
+	downloadFn := func(rawurl string) (b []byte, err error) {
 		resp, err := client.Get(rawurl)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
-		defer resp.Body.Close()
+		defer func() {
+			if cerr := resp.Body.Close(); cerr != nil {
+				err = cerr
+			}
+		}()
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 			return nil, errors.WithStack(fmt.Errorf("(%d) %s ", resp.StatusCode, rawurl))
 		}
@@ -191,7 +195,7 @@ func (s *online) FromContentHash(hash []byte) ([]byte, error) {
 }
 
 func (s *online) dataFromEncodedHash(hash []byte) ([]byte, error) {
-	downloadFn := func(hash []byte, offset, size uint32) ([]byte, error) {
+	downloadFn := func(hash []byte, offset, size uint32) (b []byte, err error) {
 		url, err := common.Url(s.cdnHost, s.cdnPath, common.PathTypeData, hash, false)
 		if err != nil {
 			return nil, err
@@ -207,7 +211,11 @@ func (s *online) dataFromEncodedHash(hash []byte) ([]byte, error) {
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
-		defer resp.Body.Close()
+		defer func() {
+			if cerr := resp.Body.Close(); cerr != nil {
+				err = cerr
+			}
+		}()
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 			return nil, errors.WithStack(fmt.Errorf("(%d) %s ", resp.StatusCode, url))
 		}

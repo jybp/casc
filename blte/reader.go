@@ -103,8 +103,8 @@ func createReader(r io.Reader, usize, csize int, checksum [0x10]byte) (io.Reader
 			uncompressed = make([]uint8, int(usize))
 			_, err = io.ReadFull(zlibReader, uncompressed)
 		}
-		if errc := zlibReader.Close(); errc != nil {
-			return nil, errors.WithStack(errc)
+		if cerr := zlibReader.Close(); cerr != nil {
+			return nil, errors.WithStack(cerr)
 		}
 		return bytes.NewReader(uncompressed), errors.WithStack(err)
 	default:

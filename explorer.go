@@ -17,7 +17,7 @@ type Storage interface {
 	Version() string
 	// Locales() ([]string, error) //todo parse .build.info (/versions) tags to find available locales (one per line)
 	RootHash() []byte
-	FromContentHash(hash []byte) ([]byte, error) //TODO variadic function?
+	FromContentHash(hash []byte) ([]byte, error)
 }
 
 // Each app has its own way of relating file names to content hash.
@@ -88,7 +88,7 @@ func (e Explorer) Files() ([]string, error) {
 }
 
 // Extract extracts the file with the given filename.
-func (e Explorer) Extract(filename string) ([]byte, error) { //TODO variadic function
+func (e Explorer) Extract(filename string) ([]byte, error) {
 	contentHash, err := e.root.ContentHash(filename)
 	if err != nil {
 		return nil, err
