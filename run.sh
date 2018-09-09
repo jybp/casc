@@ -12,5 +12,6 @@ elif [ "$CASC_APP" == "s1" ]; then
 	export CASC_DIR="/Applications/StarCraft"
 	export CASC_PATTERN="HD2/Smk/*.webm"
 fi
+export CASC_PATTERN=""
 
 make $2

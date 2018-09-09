@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Regions codes
+// Regions / CDN Regions
 const (
 	RegionUS = "us"
 	RegionEU = "eu"

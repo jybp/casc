@@ -119,6 +119,9 @@ func main() {
 		fullname := filepath.Join(outputDir, filename)
 		fmt.Printf("%d/%d: %s\n", i+1, len(filtered), fullname)
 		b, err := explorer.Extract(filename)
+		if err == casc.ErrNotFound {
+			continue
+		}
 		if err != nil {
 			fmt.Printf("cannot extract %s: "+errFmt+"\n", filename, err)
 			continue

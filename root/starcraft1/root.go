@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/jybp/casc/common"
 	"github.com/pkg/errors"
 )
 
@@ -45,7 +46,7 @@ func NewRoot(root []byte) (*Root, error) {
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
-		nameToContentHash[splits[0]] = hash
+		nameToContentHash[common.CleanPath(splits[0])] = hash
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, errors.WithStack(err)

@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/jybp/casc/common"
 	"github.com/pkg/errors"
 )
 
@@ -33,8 +34,6 @@ func (r *Root) ContentHash(filename string) ([]byte, error) {
 }
 
 func NewRoot(root []byte) (*Root, error) {
-	//TODO root contains filenames of all locales.
-	//If not installed locally, fetching those files will fail
 	nameToContentHash := map[string][]byte{}
 	scanner := bufio.NewScanner(bytes.NewReader(root))
 	for scanner.Scan() {
@@ -49,7 +48,7 @@ func NewRoot(root []byte) (*Root, error) {
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
-		nameToContentHash[name] = hash
+		nameToContentHash[common.CleanPath(name)] = hash
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, errors.WithStack(err)

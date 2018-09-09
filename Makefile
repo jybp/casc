@@ -16,8 +16,8 @@ local: build
 
 .PHONY: testslow
 testslow:
-	go test -race -slow -v ./... -timeout 120m -app $(CASC_APP)
+	go test -app $(CASC_APP) -race -slow -v -timeout 120m 
 
 .PHONY: testupdate
 testupdate:
-	go test -race -slow -update -v ./... -timeout 120m -app $(CASC_APP)
+	go test -app $(CASC_APP) -race -slow -update -v -timeout 120m 

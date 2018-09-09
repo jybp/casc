@@ -40,9 +40,9 @@ type SnoInfo struct {
 	Filename   string
 }
 
-// SnoExtensions relates arbitrary friendly names => extension
+// SnoExtensions relates arbitrary friendly names => extension. Index matters.
 var SnoExtensions = []SnoExtension{
-	SnoExtension{"", ""},                 // 0x00 Index matters
+	SnoExtension{"", ""},                 // 0x00
 	SnoExtension{"Actor", "acr"},         // 0x01
 	SnoExtension{"Adventure", "adv"},     // 0x02
 	SnoExtension{"", ""},                 // 0x03

@@ -10,30 +10,38 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Storage descibes how to fetch CASC content.
-type Storage interface {
-	//TODO all methods must be goroutine safe
+// ErrNotFound is the error returned by Explorer.Extract if the file was not found within the CASC file system.
+// For example, it can occur when extracting a file from a locale not installed.
+// This error can be silently ignored by consumers of the casc package.
+var ErrNotFound = errors.New("file not found")
+
+// storage descibes how to fetch CASC content.
+type storage interface {
 	App() string
 	Version() string
-	//Locales() []string //todo parse .build.info (/versions) tags to find available locales (one per line)
 	RootHash() []byte
 	FromContentHash(hash []byte) ([]byte, error)
 }
 
 // Each app has its own way of relating file names to content hash.
 type root interface {
-	//TODO all methods must be goroutine safe
 	Files() ([]string, error)
 	ContentHash(filename string) ([]byte, error)
 }
 
 // Explorer allows to list and extract CASC files.
 type Explorer struct {
-	storage Storage
+	storage storage
 	root    root
+	//TODO all methods must be goroutine safe
 }
 
 // NewOnlineExplorer will use client to fetch CASC files.
+// app is the program code.
+// region is the region of the game.
+// cdnRegion is the region used to download the files. Choose the closest to yours.
+// client will be used to perform downloads.
+// Possible values for app,region,cdnRegion are listed under github.com/jybp/casc/common/const.go.
 func NewOnlineExplorer(app, region, cdnRegion string, client *http.Client) (*Explorer, error) {
 	storage, err := newOnlineStorage(app, region, cdnRegion, client)
 	if err != nil {
@@ -43,6 +51,9 @@ func NewOnlineExplorer(app, region, cdnRegion string, client *http.Client) (*Exp
 }
 
 // NewLocalExplorer will use files located under installDir to fetch CASC files.
+// Examples:
+//  C:\Program Files\Warcraft III
+//  /Applications/Warcraft III
 func NewLocalExplorer(installDir string) (*Explorer, error) {
 	local, err := newLocalStorage(installDir)
 	if err != nil {
@@ -51,7 +62,7 @@ func NewLocalExplorer(installDir string) (*Explorer, error) {
 	return newExplorer(local)
 }
 
-func newExplorer(storage Storage) (*Explorer, error) {
+func newExplorer(storage storage) (*Explorer, error) {
 	rootB, err := storage.FromContentHash(storage.RootHash())
 	if err != nil {
 		return nil, err
@@ -71,12 +82,12 @@ func newExplorer(storage Storage) (*Explorer, error) {
 	return &Explorer{storage, root}, errRoot
 }
 
-// App returns the game code
+// App returns the program code.
 func (e Explorer) App() string {
 	return e.storage.App()
 }
 
-// Version returns the version of the game on the given region.
+// Version returns the version of the game.
 func (e Explorer) Version() string {
 	return e.storage.Version()
 }
@@ -88,6 +99,7 @@ func (e Explorer) Files() ([]string, error) {
 }
 
 // Extract extracts the file with the given filename.
+// Returns casc.NotFound if the file was not found.
 func (e Explorer) Extract(filename string) ([]byte, error) {
 	contentHash, err := e.root.ContentHash(filename)
 	if err != nil {

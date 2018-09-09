@@ -163,7 +163,7 @@ func (s *local) RootHash() []byte {
 func (s *local) FromContentHash(hash []byte) ([]byte, error) {
 	encodedHashes, ok := s.encoding[hex.EncodeToString(hash)]
 	if !ok || len(encodedHashes) == 0 {
-		return nil, errors.WithStack(errors.Errorf("encoded hash not found for decoded hash %x", hash))
+		return nil, ErrNotFound
 	}
 	return dataFromEncodedHash(encodedHashes[0], s.installDir, s.idxs)
 }
@@ -192,7 +192,7 @@ func findIdx(hash []byte, idxs []common.IdxEntry) (common.IdxEntry, error) {
 		}
 	}
 	if foundIdx.Key == nil {
-		return common.IdxEntry{}, errors.WithStack(errors.New("key not found in idx"))
+		return common.IdxEntry{}, ErrNotFound
 	}
 	return foundIdx, nil
 }
