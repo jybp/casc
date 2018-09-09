@@ -27,7 +27,7 @@ func TestExtract(t *testing.T) {
 		return
 	}
 	appsToInstallDir := map[string]string{
-		common.Diablo3:    "/Applications/Diablo III", //TODO .ogg != .sbk for */SoundBank/*
+		common.Diablo3:    "/Applications/Diablo III",
 		common.Starcraft1: "/Applications/StarCraft",
 		common.Warcraft3:  "/Applications/Warcraft III",
 	}
