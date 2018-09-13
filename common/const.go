@@ -23,7 +23,7 @@ const (
 	Diablo3 = "d3"
 	// HeroesOfTheStorm = "hero"
 	// Hearthstone      = "hsb"
-	// Overwatch        = "pro"
+	Overwatch  = "pro"
 	Starcraft1 = "s1"
 	// Starcraft2       = "s2"
 	Warcraft3 = "w3"

@@ -9,7 +9,7 @@ import (
 )
 
 //parseCSV returns an error if not all columns are found.
-func parseCSV(r io.Reader, columns ...string) ([]map[string]string, error) {
+func ParseCSV(r io.Reader, columns ...string) ([]map[string]string, error) {
 	columnsCheck := map[string]struct{}{}
 	for _, name := range columns {
 		columnsCheck[name] = struct{}{}

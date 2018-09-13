@@ -25,7 +25,7 @@ import (
 type logTransport struct{}
 
 func (logTransport) RoundTrip(r *http.Request) (*http.Response, error) {
-	fmt.Fprintf(common.Wlog, "http call (%s) %s %s\n", r.Method, r.URL, r.Header.Get("Range"))
+	fmt.Fprintf(common.Wlog, "%s %s %s\n", r.Method, r.URL, r.Header.Get("Range"))
 	return http.DefaultTransport.RoundTrip(r)
 }
 

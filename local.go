@@ -17,21 +17,11 @@ import (
 	"github.com/pkg/errors"
 )
 
-var productToApps = map[string]string{
-	"Diablo3": common.Diablo3,
-	// "Hero":common.HeroesOfTheStorm,
-	// "Prometheus":common.Overwatch,
-	"StarCraft1": common.Starcraft1,
-	// "SC2": common.Starcraft2,
-	"War3": common.Warcraft3,
-	// "WoW":common.WorldOfWarcraft,
-}
-
 type local struct {
 	app             string
 	versionName     string
 	rootEncodedHash []byte
-	installDir      string
+	dataDir         string
 	encoding        map[string][][]byte
 	idxs            map[uint8][]common.IdxEntry
 }
@@ -63,10 +53,30 @@ func newLocalStorage(installDir string) (l *local, err error) {
 	// rootEncodedHash & app
 	//
 
+	var dirToApp = map[string]string{
+		"Diablo III":   common.Diablo3,
+		"Overwatch":    common.Overwatch,
+		"StarCraft":    common.Starcraft1,
+		"Warcraft III": common.Warcraft3,
+	}
+	app, ok := dirToApp[filepath.Base(installDir)]
+	if !ok {
+		return nil, errors.WithStack(errors.New("unsupported app"))
+	}
+	var cascDir string
+	if app == common.Diablo3 || app == common.Starcraft1 || app == common.Warcraft3 {
+		cascDir = filepath.Join(installDir, "Data")
+	} else if app == common.Overwatch {
+		cascDir = filepath.Join(installDir, "data", "casc")
+	} else {
+		return nil, errors.WithStack(errors.New("unsupported app"))
+	}
+	configDir := filepath.Join(cascDir, common.PathTypeConfig)
+	dataDir := filepath.Join(cascDir, common.PathTypeData)
+
 	buildConfigHash := hex.EncodeToString(version.BuildConfigHash)
-	buildConfigB, err := ioutil.ReadFile(filepath.Join(installDir,
-		"Data",
-		common.PathTypeConfig,
+	buildConfigB, err := ioutil.ReadFile(filepath.Join(
+		configDir,
 		buildConfigHash[0:2],
 		buildConfigHash[2:4],
 		buildConfigHash))
@@ -78,9 +88,21 @@ func newLocalStorage(installDir string) (l *local, err error) {
 		return nil, err
 	}
 	rootHash := buildCfg.RootHash
-	app, ok := productToApps[buildCfg.BuildProduct]
+	var productToApps = map[string]string{
+		"Diablo3": common.Diablo3,
+		// "Hero":common.HeroesOfTheStorm,
+		"Prometheus": common.Overwatch,
+		"StarCraft1": common.Starcraft1,
+		// "SC2": common.Starcraft2,
+		"War3": common.Warcraft3,
+		// "WoW":common.WorldOfWarcraft,
+	}
+	buildApp, ok := productToApps[buildCfg.BuildProduct]
 	if !ok {
 		return nil, errors.WithStack(errors.Errorf("unknown build-product: %s", buildCfg.BuildProduct))
+	}
+	if app != buildApp {
+		return nil, errors.WithStack(errors.Errorf("inconsistent app %s != %s", app, buildApp))
 	}
 
 	//
@@ -88,7 +110,7 @@ func newLocalStorage(installDir string) (l *local, err error) {
 	//
 
 	// Load all indices
-	files, err := ioutil.ReadDir(filepath.Join(installDir, "Data", "data"))
+	files, err := ioutil.ReadDir(dataDir)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -105,7 +127,7 @@ func newLocalStorage(installDir string) (l *local, err error) {
 		if name[len(name)-4:] != ".idx" {
 			continue
 		}
-		f, err := os.Open(filepath.Join(installDir, "Data", "data", name))
+		f, err := os.Open(filepath.Join(dataDir, name))
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
@@ -129,7 +151,7 @@ func newLocalStorage(installDir string) (l *local, err error) {
 	if len(buildCfg.EncodingHashes) < 2 {
 		return nil, errors.WithStack(errors.New("expected at least two encoding hash"))
 	}
-	encodingR, err := dataFromEncodedHash(buildCfg.EncodingHashes[1], installDir, idxEntries)
+	encodingR, err := dataFromEncodedHash(buildCfg.EncodingHashes[1], dataDir, idxEntries)
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +165,7 @@ func newLocalStorage(installDir string) (l *local, err error) {
 		versionName:     version.Name,
 		rootEncodedHash: rootHash,
 		encoding:        encoding,
-		installDir:      installDir,
+		dataDir:         dataDir,
 		idxs:            idxEntries,
 	}, nil
 }
@@ -165,7 +187,7 @@ func (s *local) FromContentHash(hash []byte) ([]byte, error) {
 	if !ok || len(encodedHashes) == 0 {
 		return nil, ErrNotFound
 	}
-	return dataFromEncodedHash(encodedHashes[0], s.installDir, s.idxs)
+	return dataFromEncodedHash(encodedHashes[0], s.dataDir, s.idxs)
 }
 
 func bucketID(hash []byte) (uint8, error) {
@@ -197,7 +219,7 @@ func findIdx(hash []byte, idxs []common.IdxEntry) (common.IdxEntry, error) {
 	return foundIdx, nil
 }
 
-func dataFromEncodedHash(hash []byte, installDir string, idxs map[uint8][]common.IdxEntry) (b []byte, err error) {
+func dataFromEncodedHash(hash []byte, dataDir string, idxs map[uint8][]common.IdxEntry) (b []byte, err error) {
 	bucketID, err := bucketID(hash)
 	if err != nil {
 		return nil, err
@@ -210,7 +232,7 @@ func dataFromEncodedHash(hash []byte, installDir string, idxs map[uint8][]common
 	if err != nil {
 		return nil, err
 	}
-	dataFilename := filepath.Join(installDir, "Data", "data", "data."+fmt.Sprintf("%03d", idx.Index))
+	dataFilename := filepath.Join(dataDir, "data."+fmt.Sprintf("%03d", idx.Index))
 	f, err := os.Open(dataFilename)
 	if err != nil {
 		return nil, errors.WithStack(err)

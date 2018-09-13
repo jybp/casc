@@ -28,6 +28,7 @@ func TestExtract(t *testing.T) {
 	}
 	appsToInstallDir := map[string]string{
 		common.Diablo3:    "/Applications/Diablo III",
+		common.Overwatch:  "/Applications/Overwatch",
 		common.Starcraft1: "/Applications/StarCraft",
 		common.Warcraft3:  "/Applications/Warcraft III",
 	}
@@ -87,7 +88,7 @@ func testExtractApp(t *testing.T, app, installDir string) {
 			continue //ignore cascLib folders
 		}
 		if testing.Verbose() {
-			fmt.Printf("\r%d/%d", i+1, len(cascLib))
+			fmt.Printf("\r%d/%d ", i+1, len(cascLib))
 		}
 
 		if _, ok := selfmap[cascLib[i]]; ok {
@@ -100,7 +101,7 @@ func testExtractApp(t *testing.T, app, installDir string) {
 			commonFiles = []string{"download", "encoding", "install", "root", "index"}
 		}
 		// casclib extracts these common Diablo 3 files.
-		if app == common.Diablo3 {
+		if app == common.Diablo3 || app == common.Overwatch {
 			commonFiles = []string{"download", "encoding", "install", "root"}
 		}
 		if len(commonFiles) > 0 {

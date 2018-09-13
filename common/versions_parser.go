@@ -25,7 +25,7 @@ func ParseOnlineVersions(r io.Reader) (map[string]Version, error) {
 }
 
 func parseVersions(r io.Reader, region, build, cdn, version string) (map[string]Version, error) {
-	csv, err := parseCSV(r, region, build, cdn, version)
+	csv, err := ParseCSV(r, region, build, cdn, version)
 	if err != nil {
 		return nil, err
 	}

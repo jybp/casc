@@ -5,6 +5,7 @@ import (
 
 	"github.com/jybp/casc/common"
 	"github.com/jybp/casc/root/diablo3"
+	"github.com/jybp/casc/root/overwatch"
 	"github.com/jybp/casc/root/starcraft1"
 	"github.com/jybp/casc/root/warcraft3"
 	"github.com/pkg/errors"
@@ -72,6 +73,8 @@ func newExplorer(storage storage) (*Explorer, error) {
 	switch storage.App() {
 	case common.Diablo3:
 		root, errRoot = diablo3.NewRoot(rootB, storage.FromContentHash)
+	case common.Overwatch:
+		root, errRoot = overwatch.NewRoot(rootB, storage.FromContentHash)
 	case common.Warcraft3:
 		root, errRoot = warcraft3.NewRoot(rootB)
 	case common.Starcraft1:

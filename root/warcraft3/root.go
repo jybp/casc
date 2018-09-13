@@ -53,7 +53,5 @@ func NewRoot(root []byte) (*Root, error) {
 	if err := scanner.Err(); err != nil {
 		return nil, errors.WithStack(err)
 	}
-	return &Root{
-		nameToContentHash: nameToContentHash,
-	}, nil
+	return &Root{nameToContentHash}, nil
 }

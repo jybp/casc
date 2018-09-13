@@ -12,7 +12,7 @@ type Cdn struct {
 
 func ParseCdn(r io.Reader) (map[string]Cdn, error) {
 	region, path, hosts := "Name", "Path", "Hosts"
-	csv, err := parseCSV(r, region, path, hosts)
+	csv, err := ParseCSV(r, region, path, hosts)
 	if err != nil {
 		return nil, err
 	}
