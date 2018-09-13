@@ -3,12 +3,32 @@ package casc
 import (
 	"net/http"
 
-	"github.com/jybp/casc/common"
 	"github.com/jybp/casc/root/diablo3"
 	"github.com/jybp/casc/root/overwatch"
 	"github.com/jybp/casc/root/starcraft1"
 	"github.com/jybp/casc/root/warcraft3"
 	"github.com/pkg/errors"
+)
+
+// Program codes
+const (
+	Diablo3 = "d3"
+	// HeroesOfTheStorm = "hero"
+	// Hearthstone      = "hsb"
+	Overwatch  = "pro"
+	Starcraft1 = "s1"
+	// Starcraft2       = "s2"
+	Warcraft3 = "w3"
+	// WorldOfWarcraft  = "wow"
+)
+
+// Regions / CDN Regions
+const (
+	RegionUS = "us"
+	RegionEU = "eu"
+	RegionKR = "kr"
+	RegionTW = "tw"
+	RegionCN = "cn"
 )
 
 // ErrNotFound is the error returned by Explorer.Extract if the file was not found within the CASC file system.
@@ -37,13 +57,12 @@ type Explorer struct {
 	//TODO all methods must be goroutine safe
 }
 
-// NewOnlineExplorer will use client to fetch CASC files.
+// Online will use client to fetch CASC files.
 // app is the program code.
 // region is the region of the game.
-// cdnRegion is the region used to download the files. Choose the closest to yours.
-// client will be used to perform downloads.
-// Possible values for app,region,cdnRegion are listed under github.com/jybp/casc/common/const.go.
-func NewOnlineExplorer(app, region, cdnRegion string, client *http.Client) (*Explorer, error) {
+// cdnRegion is the region used to download the files.
+// client is used to perform downloads.
+func Online(app, region, cdnRegion string, client *http.Client) (*Explorer, error) {
 	storage, err := newOnlineStorage(app, region, cdnRegion, client)
 	if err != nil {
 		return nil, err
@@ -51,11 +70,11 @@ func NewOnlineExplorer(app, region, cdnRegion string, client *http.Client) (*Exp
 	return newExplorer(storage)
 }
 
-// NewLocalExplorer will use files located under installDir to fetch CASC files.
+// Local will use files located under installDir to fetch CASC files.
 // Examples:
 //  C:\Program Files\Warcraft III
 //  /Applications/Warcraft III
-func NewLocalExplorer(installDir string) (*Explorer, error) {
+func Local(installDir string) (*Explorer, error) {
 	local, err := newLocalStorage(installDir)
 	if err != nil {
 		return nil, err
@@ -71,13 +90,13 @@ func newExplorer(storage storage) (*Explorer, error) {
 	var root root
 	var errRoot error
 	switch storage.App() {
-	case common.Diablo3:
+	case Diablo3:
 		root, errRoot = diablo3.NewRoot(rootB, storage.FromContentHash)
-	case common.Overwatch:
+	case Overwatch:
 		root, errRoot = overwatch.NewRoot(rootB, storage.FromContentHash)
-	case common.Warcraft3:
+	case Warcraft3:
 		root, errRoot = warcraft3.NewRoot(rootB)
-	case common.Starcraft1:
+	case Starcraft1:
 		root, errRoot = starcraft1.NewRoot(rootB)
 	default:
 		return nil, errors.WithStack(errors.New("unsupported app"))

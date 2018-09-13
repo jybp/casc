@@ -54,19 +54,19 @@ func newLocalStorage(installDir string) (l *local, err error) {
 	//
 
 	var dirToApp = map[string]string{
-		"Diablo III":   common.Diablo3,
-		"Overwatch":    common.Overwatch,
-		"StarCraft":    common.Starcraft1,
-		"Warcraft III": common.Warcraft3,
+		"Diablo III":   Diablo3,
+		"Overwatch":    Overwatch,
+		"StarCraft":    Starcraft1,
+		"Warcraft III": Warcraft3,
 	}
 	app, ok := dirToApp[filepath.Base(installDir)]
 	if !ok {
 		return nil, errors.WithStack(errors.New("unsupported app"))
 	}
 	var cascDir string
-	if app == common.Diablo3 || app == common.Starcraft1 || app == common.Warcraft3 {
+	if app == Diablo3 || app == Starcraft1 || app == Warcraft3 {
 		cascDir = filepath.Join(installDir, "Data")
-	} else if app == common.Overwatch {
+	} else if app == Overwatch {
 		cascDir = filepath.Join(installDir, "data", "casc")
 	} else {
 		return nil, errors.WithStack(errors.New("unsupported app"))
@@ -89,12 +89,12 @@ func newLocalStorage(installDir string) (l *local, err error) {
 	}
 	rootHash := buildCfg.RootHash
 	var productToApps = map[string]string{
-		"Diablo3": common.Diablo3,
-		// "Hero":common.HeroesOfTheStorm,
-		"Prometheus": common.Overwatch,
-		"StarCraft1": common.Starcraft1,
-		// "SC2": common.Starcraft2,
-		"War3": common.Warcraft3,
+		"Diablo3": Diablo3,
+		// "Hero":HeroesOfTheStorm,
+		"Prometheus": Overwatch,
+		"StarCraft1": Starcraft1,
+		// "SC2": Starcraft2,
+		"War3": Warcraft3,
 		// "WoW":common.WorldOfWarcraft,
 	}
 	buildApp, ok := productToApps[buildCfg.BuildProduct]

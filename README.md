@@ -1,13 +1,63 @@
 # casc
 
-This repository implements a library and command-line utilities to fetch and extract files from the CASC file system used by Blizzard games. 
+Library to extract files from the CASC file system used by Blizzard games. 
+Files can be extracted locally from an installed game or online from Blizzard's CDN. 
 
-## Installation
+## Getting Started
 
-Install the library package with `go get github.com/jybp/casc`, or the provided binaries with `go get github.com/jybp/casc/cmd/...`.
+```
+go get -u github.com/jybp/casc
+```
+
+```
+package example
+
+import "github.com/jybp/casc"
+
+func example() {
+    explorer, err = casc.Online(casc.Warcraft3, casc.RegionUS, casc.RegionUS, http.DefaultClient)
+    // explorer, err = casc.Local("/Applications/Warcraft III")
+    // explorer, err = casc.Local("C:\Program Files\Warcraft III") 
+    if err != nil {
+        // Handle error
+    }
+    for _, filename := range explorer.Files() {
+        filedata, err := explorer.Extract(filename)
+        if err == casc.ErrNotFound {
+            continue
+        }
+        if err != nil {
+            // Handle error
+        }
+        // Do something with filedata
+    }
+}
+```
+
+## Support
+
+| App | Status |
+| --- | --- |
+| Diablo III | done |
+| Heroes Of The Storm | todo |
+| Overwatch | partial |
+| StarCraft | done |
+| StarCraft II | todo |
+| Warcraft III | done |
+| World Of Warcraft | todo |
+
 
 ## Documentation
 
-For more information, please see the godoc pages.
-
 https://godoc.org/github.com/jybp/casc
+
+## Examples
+
+Aside from the examples available in the documentation, a binary package is provided as an example of how the library can be used. Please refer to [cmd/casc-extract](cmd/casc-extract/).
+
+
+## Thanks
+
+- [ladislav-zezula](https://github.com/ladislav-zezula) for [CascLib](https://github.com/ladislav-zezula/CascLib)
+- [TOM_RUS](https://github.com/tomrus88) for [CASCExplorer](https://github.com/WoW-Tools/CASCExplorer)
+- [WoWDev Wiki](https://wowdev.wiki/CASC) contributors

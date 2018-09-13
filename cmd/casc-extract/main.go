@@ -35,8 +35,8 @@ func main() {
 	var list, verbose bool
 	flag.StringVar(&installDir, "dir", "", "game install directory")
 	flag.StringVar(&app, "app", "", "app code")
-	flag.StringVar(&region, "region", common.RegionEU, "app region code")
-	flag.StringVar(&cdn, "cdn", common.RegionEU, "cdn region")
+	flag.StringVar(&region, "region", casc.RegionEU, "app region code")
+	flag.StringVar(&cdn, "cdn", casc.RegionEU, "cdn region")
 	flag.StringVar(&pattern, "pattern", "", "filenames matching the pattern will be extracted\n"+
 		"       https://golang.org/pkg/path/#Match")
 	flag.StringVar(&outputDir, "o", "", "output directory for extracted files")
@@ -68,9 +68,9 @@ func main() {
 	var explorer *casc.Explorer
 	var err error
 	if installDir != "" {
-		explorer, err = casc.NewLocalExplorer(installDir)
+		explorer, err = casc.Local(installDir)
 	} else {
-		explorer, err = casc.NewOnlineExplorer(app, region, cdn, &http.Client{Transport: logTransport{}})
+		explorer, err = casc.Online(app, region, cdn, &http.Client{Transport: logTransport{}})
 	}
 
 	if err != nil {
