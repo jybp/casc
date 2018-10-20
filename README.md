@@ -12,24 +12,28 @@ go get -u github.com/jybp/casc
 ```
 package example
 
-import "github.com/jybp/casc"
+import (
+    "github.com/jybp/casc"
+    "net/http"
+)
 
 func example() {
     explorer, err = casc.Online(casc.Warcraft3, casc.RegionUS, casc.RegionUS, http.DefaultClient)
+    // Or fetch files locally using:
     // explorer, err = casc.Local("/Applications/Warcraft III")
     // explorer, err = casc.Local("C:\Program Files\Warcraft III") 
     if err != nil {
         // Handle error
     }
     for _, filename := range explorer.Files() {
-        filedata, err := explorer.Extract(filename)
+        data, err := explorer.Extract(filename)
         if err == casc.ErrNotFound {
             continue
         }
         if err != nil {
             // Handle error
         }
-        // Do something with filedata
+        // Do something with data
     }
 }
 ```

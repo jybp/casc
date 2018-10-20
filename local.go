@@ -57,6 +57,7 @@ func newLocalStorage(installDir string) (l *local, err error) {
 		"Diablo III":   Diablo3,
 		"Overwatch":    Overwatch,
 		"StarCraft":    Starcraft1,
+		"StarCraft II": Starcraft2,
 		"Warcraft III": Warcraft3,
 	}
 	app, ok := dirToApp[filepath.Base(installDir)]
@@ -64,11 +65,14 @@ func newLocalStorage(installDir string) (l *local, err error) {
 		return nil, errors.WithStack(errors.New("unsupported app"))
 	}
 	var cascDir string
-	if app == Diablo3 || app == Starcraft1 || app == Warcraft3 {
+	switch app {
+	case Diablo3, Starcraft1, Warcraft3:
 		cascDir = filepath.Join(installDir, "Data")
-	} else if app == Overwatch {
+	case Overwatch:
 		cascDir = filepath.Join(installDir, "data", "casc")
-	} else {
+	case Starcraft2:
+		cascDir = filepath.Join(installDir, "SC2Data")
+	default:
 		return nil, errors.WithStack(errors.New("unsupported app"))
 	}
 	configDir := filepath.Join(cascDir, common.PathTypeConfig)
@@ -93,8 +97,8 @@ func newLocalStorage(installDir string) (l *local, err error) {
 		// "Hero":HeroesOfTheStorm,
 		"Prometheus": Overwatch,
 		"StarCraft1": Starcraft1,
-		// "SC2": Starcraft2,
-		"War3": Warcraft3,
+		"SC2":        Starcraft2,
+		"War3":       Warcraft3,
 		// "WoW":common.WorldOfWarcraft,
 	}
 	buildApp, ok := productToApps[buildCfg.BuildProduct]

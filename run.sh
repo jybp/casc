@@ -14,6 +14,9 @@ elif [ "$CASC_APP" == "s1" ]; then
 elif [ "$CASC_APP" == "pro" ]; then
 	export CASC_DIR="/Applications/Overwatch"
 	export CASC_PATTERN=""
+elif [ "$CASC_APP" == "s2" ]; then
+	export CASC_DIR="/Applications/StarCraft II"
+	export CASC_PATTERN=""
 fi
 export CASC_PATTERN=""
 

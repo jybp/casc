@@ -170,7 +170,7 @@ func (c *checksumReader) Read(p []byte) (int, error) {
 	return n, io.EOF
 }
 
-// sizeReader checks size bytes were read when io.EOF is reached.
+// sizeReader checks size bytes was read when io.EOF is reached.
 type sizeReader struct {
 	r    io.Reader
 	size int

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/jybp/casc/root/diablo3"
+	"github.com/jybp/casc/root/mndx"
 	"github.com/jybp/casc/root/overwatch"
 	"github.com/jybp/casc/root/starcraft1"
 	"github.com/jybp/casc/root/warcraft3"
@@ -17,8 +18,8 @@ const (
 	// Hearthstone      = "hsb"
 	Overwatch  = "pro"
 	Starcraft1 = "s1"
-	// Starcraft2       = "s2"
-	Warcraft3 = "w3"
+	Starcraft2 = "s2"
+	Warcraft3  = "w3"
 	// WorldOfWarcraft  = "wow"
 )
 
@@ -98,6 +99,8 @@ func newExplorer(storage storage) (*Explorer, error) {
 		root, errRoot = warcraft3.NewRoot(rootB)
 	case Starcraft1:
 		root, errRoot = starcraft1.NewRoot(rootB)
+	case Starcraft2:
+		root, errRoot = mndx.NewRoot(rootB)
 	default:
 		return nil, errors.WithStack(errors.New("unsupported app"))
 	}

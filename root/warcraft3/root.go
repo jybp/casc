@@ -17,6 +17,7 @@ type Root struct {
 }
 
 func (r *Root) Files() ([]string, error) {
+	//TODO same code everywhere, and executed at each func call
 	names := []string{}
 	for name := range r.nameToContentHash {
 		names = append(names, name)
