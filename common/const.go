@@ -3,7 +3,6 @@ package common
 import (
 	"encoding/hex"
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -39,5 +38,5 @@ func Url(cdnHost, cdnPath string, pathType string, hash []byte, index bool) (str
 }
 
 func CleanPath(path string) string {
-	return strings.Replace(path, string(filepath.Separator), "/", -1)
+	return strings.Replace(path, "\\", "/", -1)
 }
