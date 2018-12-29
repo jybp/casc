@@ -39,5 +39,5 @@ func Url(cdnHost, cdnPath string, pathType string, hash []byte, index bool) (str
 }
 
 func CleanPath(path string) string {
-	return filepath.Clean(strings.Replace(path, "\\", "/", -1))
+	return strings.Replace(path, string(filepath.Separator), "/", -1)
 }

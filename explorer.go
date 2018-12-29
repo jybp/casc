@@ -107,7 +107,7 @@ func (e Explorer) Version() string {
 }
 
 // Files enumerates all files.
-// The separator within the filenames is '\'.
+// The separator within the filenames is '/'.
 func (e Explorer) Files() ([]string, error) {
 	return e.root.Files()
 }
