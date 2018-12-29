@@ -43,12 +43,8 @@ func example() {
 | App | Status |
 | --- | --- |
 | Diablo III | done |
-| Heroes Of The Storm | todo |
-| Overwatch | partial |
 | StarCraft | done |
-| StarCraft II | todo |
 | Warcraft III | done |
-| World Of Warcraft | todo |
 
 
 ## Documentation

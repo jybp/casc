@@ -13,8 +13,6 @@ import (
 
 	"strings"
 	"testing"
-
-	"github.com/jybp/casc/common"
 )
 
 var slow = flag.Bool("slow", false, "run slow tests")
@@ -27,10 +25,9 @@ func TestExtract(t *testing.T) {
 		return
 	}
 	appsToInstallDir := map[string]string{
-		common.Diablo3:    "/Applications/Diablo III",
-		common.Overwatch:  "/Applications/Overwatch",
-		common.Starcraft1: "/Applications/StarCraft",
-		common.Warcraft3:  "/Applications/Warcraft III",
+		Diablo3:    "/Applications/Diablo III",
+		Starcraft1: "/Applications/StarCraft",
+		Warcraft3:  "/Applications/Warcraft III",
 	}
 	if *app != "" {
 		installDir, ok := appsToInstallDir[*app]
@@ -97,11 +94,11 @@ func testExtractApp(t *testing.T, app, installDir string) {
 
 		// casclib extracts these common Warcraft 3 files.
 		commonFiles := []string{}
-		if app == common.Warcraft3 {
+		if app == Warcraft3 {
 			commonFiles = []string{"download", "encoding", "install", "root", "index"}
 		}
 		// casclib extracts these common Diablo 3 files.
-		if app == common.Diablo3 || app == common.Overwatch {
+		if app == Diablo3 {
 			commonFiles = []string{"download", "encoding", "install", "root"}
 		}
 		if len(commonFiles) > 0 {
@@ -118,7 +115,7 @@ func testExtractApp(t *testing.T, app, installDir string) {
 		}
 
 		//TODO casclib doesn't convert sbk extension for Diablo 3?
-		if app == common.Diablo3 {
+		if app == Diablo3 {
 			idxDot := strings.LastIndex(cascLib[i], ".")
 			if idxDot > 0 {
 				ext := cascLib[i][idxDot+1 : idxDot+4]
@@ -162,7 +159,7 @@ func testLoadFile(t *testing.T, filename string) []string {
 func testUpdate(t *testing.T, app, installDir string) {
 	dir, close := testTempDir(t)
 	defer close()
-	explorer, err := NewLocalExplorer(installDir)
+	explorer, err := Local(installDir)
 	if err != nil {
 		t.Fatal(err)
 	}
