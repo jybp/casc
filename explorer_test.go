@@ -1,10 +1,11 @@
-package casc
+package casc_test
 
 import (
 	"bufio"
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -13,6 +14,8 @@ import (
 
 	"strings"
 	"testing"
+
+	"github.com/jybp/casc"
 )
 
 var slow = flag.Bool("slow", false, "run slow tests")
@@ -25,9 +28,9 @@ func TestExtract(t *testing.T) {
 		return
 	}
 	appsToInstallDir := map[string]string{
-		Diablo3:    "/Applications/Diablo III",
-		Starcraft1: "/Applications/StarCraft",
-		Warcraft3:  "/Applications/Warcraft III",
+		casc.Diablo3:    "/Applications/Diablo III",
+		casc.Starcraft1: "/Applications/StarCraft",
+		casc.Warcraft3:  "/Applications/Warcraft III",
 	}
 	if *app != "" {
 		installDir, ok := appsToInstallDir[*app]
@@ -94,11 +97,11 @@ func testExtractApp(t *testing.T, app, installDir string) {
 
 		// casclib extracts these common Warcraft 3 files.
 		commonFiles := []string{}
-		if app == Warcraft3 {
+		if app == casc.Warcraft3 {
 			commonFiles = []string{"download", "encoding", "install", "root", "index"}
 		}
 		// casclib extracts these common Diablo 3 files.
-		if app == Diablo3 {
+		if app == casc.Diablo3 {
 			commonFiles = []string{"download", "encoding", "install", "root"}
 		}
 		if len(commonFiles) > 0 {
@@ -115,7 +118,7 @@ func testExtractApp(t *testing.T, app, installDir string) {
 		}
 
 		//TODO casclib doesn't convert sbk extension for Diablo 3?
-		if app == Diablo3 {
+		if app == casc.Diablo3 {
 			idxDot := strings.LastIndex(cascLib[i], ".")
 			if idxDot > 0 {
 				ext := cascLib[i][idxDot+1 : idxDot+4]
@@ -159,7 +162,7 @@ func testLoadFile(t *testing.T, filename string) []string {
 func testUpdate(t *testing.T, app, installDir string) {
 	dir, close := testTempDir(t)
 	defer close()
-	explorer, err := Local(installDir)
+	explorer, err := casc.Local(installDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -208,4 +211,13 @@ func testTempDir(t *testing.T) (string, func()) {
 			t.Fatal(err)
 		}
 	}
+}
+
+func TestWow(t *testing.T) {
+	explorer, err := casc.Online(casc.WorldOfWarcraft, casc.RegionUS, casc.RegionUS, http.DefaultClient)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("app %s\n", explorer.App())
+	t.Logf("version %s\n", explorer.Version())
 }
