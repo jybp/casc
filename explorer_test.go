@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -211,13 +210,4 @@ func testTempDir(t *testing.T) (string, func()) {
 			t.Fatal(err)
 		}
 	}
-}
-
-func TestWow(t *testing.T) {
-	explorer, err := casc.Online(casc.WorldOfWarcraft, casc.RegionUS, casc.RegionUS, http.DefaultClient)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("app %s\n", explorer.App())
-	t.Logf("version %s\n", explorer.Version())
 }

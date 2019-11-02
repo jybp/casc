@@ -26,7 +26,7 @@ type local struct {
 	idxs            map[uint8][]common.IdxEntry
 }
 
-func newLocalStorage(installDir string) (l *local, err error) {
+func NewLocalStorage(installDir string) (l *local, err error) {
 
 	//
 	// app & versionName

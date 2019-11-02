@@ -31,7 +31,7 @@ type online struct {
 	cdnPath         string
 }
 
-func newOnlineStorage(app, region, cdnRegion string, client *http.Client) (*online, error) {
+func NewOnlineStorage(app, region, cdnRegion string, client *http.Client) (*online, error) {
 	downloadFn := func(rawurl string) (b []byte, err error) {
 		resp, err := client.Get(rawurl)
 		if err != nil {

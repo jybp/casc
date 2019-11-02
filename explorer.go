@@ -59,7 +59,7 @@ type Explorer struct {
 // cdnRegion is the region used to download the files.
 // client is used to perform downloads.
 func Online(app, region, cdnRegion string, client *http.Client) (*Explorer, error) {
-	storage, err := newOnlineStorage(app, region, cdnRegion, client)
+	storage, err := NewOnlineStorage(app, region, cdnRegion, client)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func Online(app, region, cdnRegion string, client *http.Client) (*Explorer, erro
 //  C:\Program Files\Warcraft III
 //  /Applications/Warcraft III
 func Local(installDir string) (*Explorer, error) {
-	local, err := newLocalStorage(installDir)
+	local, err := NewLocalStorage(installDir)
 	if err != nil {
 		return nil, err
 	}
