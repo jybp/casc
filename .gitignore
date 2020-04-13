@@ -21,8 +21,6 @@ cache
 doc
 blte
 !blte/
-casc-extract
-!casc-extract/
 extract
 casclib
 *.log
