@@ -47,13 +47,13 @@ You can download the latest release here: https://github.com/jybp/casc/releases
   -app string
         app code
   -cdn string
-        cdn region (default "eu")
+        cdn region (default "us")
   -dir string
         game install directory
   -o string
         output directory for extracted files
   -region string
-        app region code (default "eu")
+        app region code (default "us")
   -v    verbose
 ```
 
