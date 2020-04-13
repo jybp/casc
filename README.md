@@ -1,13 +1,12 @@
 # casc
 
+## Library
+
 Library to extract files from the CASC file system used by Blizzard games. 
-Files can be extracted locally from an installed game or online from Blizzard's CDN. 
+Files can be extracted locally from an installed game or online from Blizzard's CDN.  
+Full documentation available at: https://godoc.org/github.com/jybp/casc
 
-## Getting Started
-
-```
-go get -u github.com/jybp/casc
-```
+### Example
 
 ```
 package example
@@ -38,23 +37,47 @@ func example() {
 }
 ```
 
+## cmd/casc
+
+A command line program to extract files from a local installation or from Blizzard's CDN.  
+You can download the latest release here: https://github.com/jybp/casc/releases
+
+### Usage
+```
+  -app string
+        app code
+  -cdn string
+        cdn region (default "eu")
+  -dir string
+        game install directory
+  -o string
+        output directory for extracted files
+  -region string
+        app region code (default "eu")
+  -v    verbose
+```
+
+### Examples
+
+List all Warcraft III files :
+```
+$ casc.exe -dir "C:\Program Files\Warcraft III"
+$ casc -dir "/Applications/Warcraft III"
+$ casc -app w3
+```
+
+Extract all Warcraft III files that are inside the 'War3.w3mod:Movies' folder from Blizzard's CDN into the current directoy:
+```
+$ ./casc -app w3 | grep '^War3.w3mod:Movies/' | ./casc -app w3
+```
+
 ## Support
 
-| App | Status |
-| --- | --- |
-| Diablo III | done |
-| StarCraft | done |
-| Warcraft III | done |
-
-
-## Documentation
-
-https://godoc.org/github.com/jybp/casc
-
-## Examples
-
-Aside from the examples available in the documentation, a binary package is provided as an example of how the library can be used. Please refer to [cmd/casc-extract](cmd/casc-extract/).
-
+| App | Code | Status |
+| --- | --- | --- |
+| Diablo III | d3 | done |
+| StarCraft | s1 | done |
+| Warcraft III | w3 | done |
 
 ## Thanks
 
