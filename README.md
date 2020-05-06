@@ -66,7 +66,7 @@ $ casc -dir "/Applications/Warcraft III"
 $ casc -app w3
 ```
 
-Extract all Warcraft III files that are inside the 'War3.w3mod:Movies' folder from Blizzard's CDN into the current directoy:
+Extract all Warcraft III files that are inside the 'War3.w3mod:Movies' folder from Blizzard's CDN into the current directory:
 ```
 $ ./casc -app w3 | grep '^War3.w3mod:Movies/' | ./casc -app w3
 ```
