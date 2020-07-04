@@ -32,27 +32,6 @@ func newLocalStorage(installDir string) (l *local, err error) {
 	// app & versionName
 	//
 
-	buildInfoB, err := ioutil.ReadFile(filepath.Join(installDir, ".build.info"))
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-	versions, err := common.ParseBuildInfo(bytes.NewReader(buildInfoB))
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-	if len(versions) != 1 {
-		return nil, errors.WithStack(errors.New("several regions within .build.info"))
-	}
-	var region string
-	for key := range versions {
-		region = key
-	}
-	version := versions[region]
-
-	//
-	// rootEncodedHash & app
-	//
-
 	var dirToApp = map[string]string{
 		"Diablo III":   Diablo3,
 		"StarCraft":    Starcraft1,
@@ -69,6 +48,33 @@ func newLocalStorage(installDir string) (l *local, err error) {
 	default:
 		return nil, errors.WithStack(errors.New("unsupported app"))
 	}
+
+	buildInfoB, err := ioutil.ReadFile(filepath.Join(installDir, ".build.info"))
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	versions, err := common.ParseLocalBuildInfo(bytes.NewReader(buildInfoB))
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	if len(versions) == 0 {
+		return nil, errors.WithStack(errors.New("no entries within .build.info"))
+	}
+
+	var version common.Version = versions[0]
+	for _, v := range versions {
+		if len(v.ProductCode) > 0 && v.ProductCode == app {
+			version = v
+			break
+		}
+	}
+
+	fmt.Fprintf(common.Wlog, "app %s, version %s and region %s\n", app, version.Name, version.Region)
+
+	//
+	// rootEncodedHash & app
+	//
+
 	configDir := filepath.Join(cascDir, common.PathTypeConfig)
 	dataDir := filepath.Join(cascDir, common.PathTypeData)
 

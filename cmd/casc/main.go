@@ -15,8 +15,10 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"github.com/pkg/errors"
+
 	"github.com/jybp/casc"
+	"github.com/jybp/casc/common"
+	"github.com/pkg/errors"
 )
 
 type logTransport struct{}
@@ -55,6 +57,7 @@ func run() error {
 
 	client := http.DefaultClient
 	if verbose {
+		common.Wlog = os.Stdout
 		client.Transport = logTransport{}
 	}
 

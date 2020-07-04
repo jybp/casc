@@ -60,8 +60,14 @@ func newOnlineStorage(app, region, cdnRegion string, client *http.Client) (*onli
 	if err != nil {
 		return nil, err
 	}
-	version, ok := versions[region]
-	if !ok {
+	var version common.Version
+	for _, v := range versions {
+		if v.Region == region {
+			version = v
+			break
+		}
+	}
+	if len(version.Region) == 0 {
 		return nil, errors.WithStack(fmt.Errorf("version with region %s not found", region))
 	}
 

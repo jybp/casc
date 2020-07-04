@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-//parseCSV returns an error if not all columns are found.
+//ParseCSV returns an error if not all columns are found.
 func ParseCSV(r io.Reader, columns ...string) ([]map[string]string, error) {
 	columnsCheck := map[string]struct{}{}
 	for _, name := range columns {
@@ -22,7 +22,7 @@ func ParseCSV(r io.Reader, columns ...string) ([]map[string]string, error) {
 		return nil, errors.WithStack(err)
 	}
 	if len(lines) == 0 {
-		return nil, errors.WithStack(errors.New("invalid csv"))
+		return nil, errors.New("csv has no lines")
 	}
 	names := lines[0]
 	data := lines[1:]
@@ -37,7 +37,11 @@ func ParseCSV(r io.Reader, columns ...string) ([]map[string]string, error) {
 		lookup = append(lookup, l)
 	}
 	if len(columnsCheck) > 0 {
-		return nil, errors.WithStack(errors.New("invalid csv"))
+		var notFound []string
+		for col := range columnsCheck {
+			notFound = append(notFound, col)
+		}
+		return nil, errors.Errorf("colums not found in the csv: %s", strings.Join(notFound, ", "))
 	}
 	return lookup, nil
 }
