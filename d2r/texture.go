@@ -210,7 +210,26 @@ func (t *Texture) WriteDDS(w io.Writer) error {
 // When normalMap is true, a DXT5nm normal map (X in alpha, Y in green) is
 // converted to a regular opaque RGB normal map with Z reconstructed.
 func (t *Texture) Image(normalMap bool) (*image.NRGBA, error) {
-	m := t.Mips[0]
+	return t.MipImage(0, normalMap)
+}
+
+// SmallestMipAtLeast returns the index of the smallest mip whose width and height are >= size.
+func (t *Texture) SmallestMipAtLeast(size int) int {
+	best := 0
+	for i, m := range t.Mips {
+		if m.Width >= size && m.Height >= size {
+			best = i
+		}
+	}
+	return best
+}
+
+// MipImage decodes the given mip level. See Image for normalMap.
+func (t *Texture) MipImage(level int, normalMap bool) (*image.NRGBA, error) {
+	if level < 0 || level >= len(t.Mips) {
+		return nil, errors.Errorf("invalid mip level %d", level)
+	}
+	m := t.Mips[level]
 	img := image.NewNRGBA(image.Rect(0, 0, m.Width, m.Height))
 	info := formats[t.Format]
 	if info.decode == nil {

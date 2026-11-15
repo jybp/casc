@@ -30,3 +30,6 @@ dist
 d2r/data/
 d2r/locales/
 d2r/binaries*/
+
+# Python caches (tools/reference/blender)
+__pycache__/

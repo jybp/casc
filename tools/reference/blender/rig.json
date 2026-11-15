@@ -1,0 +1,13 @@
+{
+  "_comment": "Camera and light rig for reference renders. Edit to match the target game's own rig: side-view orthographic camera, warm key, cold rim, dark blue ambient.",
+  "elevation_deg": 12.0,
+  "yaw_deg": [25.0],
+  "pixels_per_unit": 96,
+  "margin": 0.1,
+  "samples": 64,
+  "device": "cpu",
+  "view_transform": "AgX",
+  "key": {"rotation_deg": [40.0, 0.0, 10.0], "color": [1.0, 0.9, 0.76], "strength": 5.5, "angle_deg": 12.0},
+  "rim": {"rotation_deg": [-42.0, 0.0, 30.0], "color": [0.4, 0.58, 1.0], "strength": 4.5, "angle_deg": 6.0},
+  "world": {"color": [0.05, 0.075, 0.14], "strength": 1.3}
+}
