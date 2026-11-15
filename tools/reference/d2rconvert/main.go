@@ -12,6 +12,7 @@ Outputs (under -out):
 	tiles/<act>/<set>/<name>.png (+ .json)                          legacy level tiles
 	orm/<path>_{ao,roughness,metal}.png                             HD material channels split
 	models/<path>.glb                                               HD meshes (+ skeleton, textures)
+	hdsprites/<path>.png (+ .json)                                  HD 2D sprites (UI, item icons...)
 */
 package main
 
@@ -45,6 +46,7 @@ type converter struct {
 	lods     string // "0", "all"
 	textures string // "link", "embed", "none"
 	skin     bool
+	lowend   bool
 	palettes map[string]*d2r.Palette
 	done     int64
 	failed   int64
@@ -55,7 +57,8 @@ type converter struct {
 func main() {
 	in := flag.String("in", "extract/d2r", "extracted D2R folder (contains data/data/...)")
 	out := flag.String("out", "extract/reference", "output folder")
-	only := flag.String("only", "sprites,dc6,tiles,orm,models", "comma separated: sprites, dc6, tiles, orm, models")
+	only := flag.String("only", "sprites,dc6,tiles,orm,models,hdsprites", "comma separated: sprites, dc6, tiles, orm, models, hdsprites")
+	lowend := flag.Bool("lowend", false, "hdsprites: also convert the .lowend.sprite (reduced resolution) copies")
 	lods := flag.String("lod", "0", "models: level of detail to convert (0 = most detailed) or \"all\"")
 	skin := flag.Bool("skin", false, "models: export the skeleton and skinning weights (for posing/animation); the meshes are in their bind pose either way")
 	textures := flag.String("textures", "link", "models: link (reference the PNGs written by casc -convert png), embed (self-contained .glb, large) or none")
@@ -63,7 +66,7 @@ func main() {
 	workers := flag.Int("j", 8, "parallel workers")
 	flag.Parse()
 
-	c := &converter{in: *in, out: *out, lods: *lods, textures: *textures, skin: *skin, palettes: map[string]*d2r.Palette{}}
+	c := &converter{in: *in, out: *out, lods: *lods, textures: *textures, skin: *skin, lowend: *lowend, palettes: map[string]*d2r.Palette{}}
 	if err := c.loadPalettes(); err != nil {
 		log.Fatal(err)
 	}
@@ -210,6 +213,14 @@ func (c *converter) collect(kinds map[string]bool, pattern string) ([]job, error
 			return nil, err
 		}
 	}
+	if kinds["hdsprites"] {
+		if err := add("hdsprites", c.hd(), func(p string) bool {
+			n := strings.ToLower(p)
+			return strings.HasSuffix(n, ".sprite") && (c.lowend || !strings.HasSuffix(n, ".lowend.sprite"))
+		}, relHD); err != nil {
+			return nil, err
+		}
+	}
 	return jobs, nil
 }
 
@@ -225,6 +236,8 @@ func (c *converter) run(j job) error {
 		return c.orm(j.path)
 	case "models":
 		return c.model(j.path)
+	case "hdsprites":
+		return c.hdSprite(j.path)
 	}
 	return fmt.Errorf("unknown job %s", j.kind)
 }
@@ -515,4 +528,28 @@ func (c *converter) textureLink(name, glbDir string) ([]byte, string, error) {
 		return nil, filepath.ToSlash(absPNG), nil
 	}
 	return nil, filepath.ToSlash(rel), nil
+}
+
+// hdSprite converts a remastered SpA1 sprite strip to PNG with its frame layout.
+func (c *converter) hdSprite(rel string) error {
+	b, err := ioutil.ReadFile(c.hd(rel))
+	if err != nil {
+		return err
+	}
+	s, err := d2r.ParseHDSprite(b)
+	if err != nil {
+		return err
+	}
+	base := filepath.Join(c.out, "hdsprites", trimExt(rel))
+	if err := writePNG(base+".png", s.Image); err != nil {
+		return err
+	}
+	return writeJSON(base+".json", map[string]interface{}{
+		"version":    s.Version,
+		"width":      s.Image.Rect.Dx(),
+		"height":     s.Image.Rect.Dy(),
+		"frames":     s.Frames,
+		"frameWidth": s.FrameWidth,
+		"stride":     s.Stride(),
+	})
 }

@@ -36,7 +36,16 @@ go build -o extract/d2ranalyze.exe ./tools/reference/d2ranalyze
 | `orm/<path>_{ao,roughness,metal}.png` | HD `_orm` textures | Occlusion, roughness and metalness as separate greyscale images. |
 | `models/<path>.glb` | HD `.model` (Granny 3D) | Meshes in metres with normals, UVs and PBR materials bound to their exact textures (albedo, normal map, occlusion/roughness/metalness). |
 
-Options: `-only sprites,dc6,tiles,orm,models`, `-pattern monsters/` (substring of the input path), `-j 16`.
+| `hdsprites/<path>.png` (+ `.json`) | HD `.sprite` (SpA1) | Remastered 2D art: 444 item icons, skill icons, panels, portraits, loading screens, automap. Each file is a horizontal strip of frames; the `.json` gives `frames`, `frameWidth` and `stride` (frame `i` starts at `i * stride`). |
+
+Which art set each output comes from: `models`, `orm`, `hdsprites` and the palette/material
+measurements use the remastered (HD) assets. `sprites`, `dc6`, `tiles` and the unit heights in
+`proportions.csv` come from the original 2D assets kept for the legacy graphics mode.
+`animation.csv` is game timing, shared by both modes.
+
+Options: `-only sprites,dc6,tiles,orm,models,hdsprites`, `-pattern monsters/` (substring of the input path), `-j 16`.
+
+HD sprites come in two copies, full resolution and `.lowend`; only the first is converted unless `-lowend` is passed.
 
 Model options:
 - `-lod 0` (default) converts the most detailed level only; `-lod all` converts every level.

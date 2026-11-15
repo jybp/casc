@@ -113,3 +113,31 @@ func TestParseAnimData(t *testing.T) {
 		t.Fatalf("unexpected %+v", a)
 	}
 }
+
+func TestParseHDSprite(t *testing.T) {
+	// Version 31 (RGBA8): 2 frames of 1x1 in a 4x1 strip (stride 2).
+	b := make([]byte, 40, 40+16)
+	copy(b, "SpA1")
+	le := binary.LittleEndian
+	le.PutUint16(b[4:], 31)
+	le.PutUint16(b[6:], 1)
+	le.PutUint32(b[8:], 4)
+	le.PutUint32(b[12:], 1)
+	le.PutUint32(b[20:], 2)
+	le.PutUint32(b[32:], 16)
+	b = append(b, 1, 2, 3, 255, 0, 0, 0, 0, 9, 8, 7, 128, 0, 0, 0, 0)
+	s, err := ParseHDSprite(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.Stride() != 2 || s.Frames != 2 {
+		t.Fatalf("stride %d frames %d", s.Stride(), s.Frames)
+	}
+	f := s.Frame(1)
+	if c := f.NRGBAAt(f.Rect.Min.X, 0); c.R != 9 || c.A != 128 || f.Rect.Dx() != 1 {
+		t.Fatalf("frame 1 = %v (%v)", c, f.Rect)
+	}
+	if _, err := ParseHDSprite([]byte("nope")); err == nil {
+		t.Fatal("expected error")
+	}
+}

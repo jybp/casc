@@ -125,6 +125,7 @@ D2R file formats:
 | `.texture` | HD textures | Converted with `-convert` (BC1/BC3/BC4/BC5/RGBA8). `_alb` albedo, `_nrm` normal map (DXT5nm, rebuilt as a regular normal map in PNG), `_orm` occlusion/roughness/metalness. |
 | `.model` | HD meshes | Granny 3D (`.gr2`, version 7, 64-bit, BitKnit2 compressed). The `granny` package reads them and `tools/reference/d2rconvert -only models` exports them to glTF. |
 | `.skeleton`, `.animations` | HD rigs and animations | Granny 3D. Readable with the `granny` package; animation curves are not converted yet. |
+| `.sprite` | HD 2D art (UI, item icons, loading screens) | "SpA1" strips of frames (RGBA8, BC3 or half float). Converted by `tools/reference/d2rconvert -only hdsprites`. |
 | `.json` | HD materials, variants, presets | Plain text. |
 | `.dcc`, `.dc6`, `.cof` | Original 2D sprites and their layer composition | `data:data/global/...` |
 | `.dt1`, `.ds1` | Original 2D tiles and level presets | `data:data/global/tiles/...` |
