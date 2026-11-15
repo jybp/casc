@@ -26,3 +26,10 @@ casclib
 *.log
 
 dist
+# Diablo II Resurrected extractions (casc -o d2r run from the repository root)
+d2r/data/
+d2r/locales/
+d2r/binaries*/
+
+# Python caches (tools/reference/blender)
+__pycache__/
