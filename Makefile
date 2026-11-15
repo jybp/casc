@@ -1,6 +1,6 @@
 .PHONY: build
 build: 
-	cd ./cmd/casc-extract && go build
+	cd ./cmd/casc && go build
 
 .PHONY: test
 test:
@@ -8,11 +8,11 @@ test:
 
 .PHONY: online
 online: build
-	cd ./cmd/casc-extract && ./casc-extract -app $(CASC_APP) -region $(CASC_REGION) -cdn $(CASC_REGION) -pattern "$(CASC_PATTERN)" -o "extract/$(CASC_APP)/online" -v
+	cd ./cmd/casc && ./casc -x -app $(CASC_APP) -region $(CASC_REGION) -cdn $(CASC_REGION) -pattern "$(CASC_PATTERN)" -o "extract/$(CASC_APP)/online" -v
 
 .PHONY: local
 local: build
-	cd ./cmd/casc-extract && ./casc-extract -dir "$(CASC_DIR)" -pattern "$(CASC_PATTERN)" -o "extract/$(CASC_APP)/local" -v
+	cd ./cmd/casc && ./casc -x -dir "$(CASC_DIR)" -pattern "$(CASC_PATTERN)" -o "extract/$(CASC_APP)/local" -v
 
 .PHONY: testslow
 testslow:

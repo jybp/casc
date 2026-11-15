@@ -21,9 +21,10 @@ type local struct {
 	app             string
 	versionName     string
 	rootEncodedHash []byte
+	buildCfg        common.BuildConfig
 	dataDir         string
 	encoding        map[string][][]byte
-	idxs            map[uint8][]common.IdxEntry
+	idxs            map[string]common.IdxEntry // key: first 9 bytes of the encoded hash
 }
 
 func newLocalStorage(installDir string) (l *local, err error) {
@@ -33,9 +34,10 @@ func newLocalStorage(installDir string) (l *local, err error) {
 	//
 
 	var dirToApp = map[string]string{
-		"Diablo III":   Diablo3,
-		"StarCraft":    Starcraft1,
-		"Warcraft III": Warcraft3,
+		"Diablo III":            Diablo3,
+		"Diablo II Resurrected": Diablo2R,
+		"StarCraft":             Starcraft1,
+		"Warcraft III":          Warcraft3,
 	}
 	app, ok := dirToApp[filepath.Base(installDir)]
 	if !ok {
@@ -43,7 +45,7 @@ func newLocalStorage(installDir string) (l *local, err error) {
 	}
 	var cascDir string
 	switch app {
-	case Diablo3, Starcraft1, Warcraft3:
+	case Diablo3, Diablo2R, Starcraft1, Warcraft3:
 		cascDir = filepath.Join(installDir, "Data")
 	default:
 		return nil, errors.WithStack(errors.New("unsupported app"))
@@ -94,6 +96,7 @@ func newLocalStorage(installDir string) (l *local, err error) {
 	rootHash := buildCfg.RootHash
 	var productToApps = map[string]string{
 		"Diablo3":    Diablo3,
+		"Fenway":     Diablo2R,
 		"StarCraft1": Starcraft1,
 		"War3":       Warcraft3,
 	}
@@ -118,7 +121,7 @@ func newLocalStorage(installDir string) (l *local, err error) {
 	// It looks like the last file contains the most up to date indices.
 	// Sort the files accordingly so that the first index findIdx finds is the correct.
 	sort.Slice(files, func(i, j int) bool { return files[i].Name() > files[j].Name() })
-	idxEntries := map[uint8][]common.IdxEntry{}
+	idxEntries := map[string]common.IdxEntry{}
 	for _, file := range files {
 		name := file.Name()
 		if len(name) < 4 {
@@ -127,25 +130,25 @@ func newLocalStorage(installDir string) (l *local, err error) {
 		if name[len(name)-4:] != ".idx" {
 			continue
 		}
-		f, err := os.Open(filepath.Join(dataDir, name))
+		idxB, err := ioutil.ReadFile(filepath.Join(dataDir, name))
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
-		defer func() {
-			if cerr := f.Close(); cerr != nil {
-				err = cerr
-			}
-		}()
 		bucketID, err := strconv.ParseUint(string(name[1]), 16, 8)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 		fmt.Fprintf(common.Wlog, "bucket %x: %s\n", uint8(bucketID), name)
-		indices, err := common.ParseIdx(f)
+		indices, err := common.ParseIdx(bytes.NewReader(idxB))
 		if err != nil {
 			return nil, err
 		}
-		idxEntries[uint8(bucketID)] = append(idxEntries[uint8(bucketID)], indices...)
+		for _, idx := range indices {
+			k := string(idx.Key)
+			if _, ok := idxEntries[k]; !ok { // first found is the most up to date
+				idxEntries[k] = idx
+			}
+		}
 	}
 
 	if len(buildCfg.EncodingHashes) < 2 {
@@ -164,6 +167,7 @@ func newLocalStorage(installDir string) (l *local, err error) {
 		app:             app,
 		versionName:     version.Name,
 		rootEncodedHash: rootHash,
+		buildCfg:        buildCfg,
 		encoding:        encoding,
 		dataDir:         dataDir,
 		idxs:            idxEntries,
@@ -182,6 +186,10 @@ func (s *local) RootHash() []byte {
 	return s.rootEncodedHash
 }
 
+func (s *local) BuildConfig() common.BuildConfig {
+	return s.buildCfg
+}
+
 func (s *local) FromContentHash(hash []byte) ([]byte, error) {
 	encodedHashes, ok := s.encoding[hex.EncodeToString(hash)]
 	if !ok || len(encodedHashes) == 0 {
@@ -190,45 +198,24 @@ func (s *local) FromContentHash(hash []byte) ([]byte, error) {
 	return dataFromEncodedHash(encodedHashes[0], s.dataDir, s.idxs)
 }
 
-func bucketID(hash []byte) (uint8, error) {
-	if len(hash) < 9 {
-		return 0, errors.WithStack(errors.New("invalid hash len"))
-	}
-	i := hash[0] ^ hash[1] ^ hash[2] ^ hash[3] ^ hash[4] ^ hash[5] ^ hash[6] ^ hash[7] ^ hash[8]
-	return (i & 0xf) ^ (i >> 4), nil
+// FromEncodedHash accepts full or truncated (at least 9 bytes) encoded hashes.
+func (s *local) FromEncodedHash(hash []byte) ([]byte, error) {
+	return dataFromEncodedHash(hash, s.dataDir, s.idxs)
 }
 
-func findIdx(hash []byte, idxs []common.IdxEntry) (common.IdxEntry, error) {
-	foundIdx := common.IdxEntry{}
-	for _, idx := range idxs {
-		keyLen := len(idx.Key)
-		hashLen := len(hash)
-		shift := hashLen - keyLen
-		if shift < 0 {
-			return common.IdxEntry{}, errors.WithStack(errors.New("invalid key/hash len"))
-		}
-		h := hash[:len(hash)-shift]
-		if bytes.Compare(h, idx.Key) == 0 {
-			foundIdx = idx
-			break
-		}
+func findIdx(hash []byte, idxs map[string]common.IdxEntry) (common.IdxEntry, error) {
+	if len(hash) < 9 {
+		return common.IdxEntry{}, errors.WithStack(errors.New("invalid hash len"))
 	}
-	if foundIdx.Key == nil {
+	idx, ok := idxs[string(hash[:9])]
+	if !ok {
 		return common.IdxEntry{}, ErrNotFound
 	}
-	return foundIdx, nil
+	return idx, nil
 }
 
-func dataFromEncodedHash(hash []byte, dataDir string, idxs map[uint8][]common.IdxEntry) (b []byte, err error) {
-	bucketID, err := bucketID(hash)
-	if err != nil {
-		return nil, err
-	}
-	indices, ok := idxs[bucketID]
-	if !ok {
-		return nil, errors.WithStack(fmt.Errorf("bucket %x not found", bucketID))
-	}
-	idx, err := findIdx(hash, indices)
+func dataFromEncodedHash(hash []byte, dataDir string, idxs map[string]common.IdxEntry) (b []byte, err error) {
+	idx, err := findIdx(hash, idxs)
 	if err != nil {
 		return nil, err
 	}
@@ -267,13 +254,17 @@ func dataFromEncodedHash(hash []byte, dataDir string, idxs map[uint8][]common.Id
 	if _, err := f.Seek(10, io.SeekCurrent); err != nil { //unk, ChecksumA, ChecksumB
 		return nil, errors.WithStack(err)
 	}
-	blteReader, err := blte.NewReader(io.LimitReader(f, int64(idx.Size-30)))
+	encoded := make([]byte, idx.Size-30)
+	if _, err := io.ReadFull(f, encoded); err != nil {
+		return nil, errors.WithStack(err)
+	}
+	blteReader, err := blte.NewReader(bytes.NewReader(encoded))
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	b, err = ioutil.ReadAll(blteReader)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 	return b, nil
 }

@@ -45,17 +45,38 @@ You can download the latest release here: https://github.com/jybp/casc/releases
 ### Usage
 ```
   -app string
-        app code
+        app code (d3, osi, s1, w3)
   -cdn string
         cdn region (default "us")
+  -convert string
+        also convert D2R .texture files: dds (lossless, all mipmaps), png (largest mipmap) or both
   -dir string
         game install directory
+  -flat
+        write files directly inside the output directory instead of keeping the CASC folders
+  -j int
+        number of files extracted in parallel (default 8)
+  -l    list files (default when stdin is a terminal)
+  -no-raw
+        with -convert, do not write the original .texture files
   -o string
-        output directory for extracted files
+        output directory for extracted files (default "extract" with -x)
+  -pattern string
+        only keep files matching this regular expression (case insensitive)
+  -preset string
+        comma separated list of file groups, see -presets
+  -presets
+        print the available presets
   -region string
         app region code (default "us")
+  -skip-existing
+        do not extract files already present in the output directory
   -v    verbose
+  -x    extract every matching file
 ```
+
+Without `-l` or `-x`, files are listed when stdin is a terminal, otherwise the filenames read from stdin are extracted.
+Extracted files keep their CASC folders (`:` is replaced by `/`), unless `-flat` is used.
 
 ### Examples
 
@@ -71,10 +92,48 @@ Extract all Warcraft III files that are inside the 'War3.w3mod:Movies' folder fr
 $ ./casc -app w3 | grep '^War3.w3mod:Movies/' | ./casc -app w3
 ```
 
+### Diablo II Resurrected
+
+The install folder must be named `Diablo II Resurrected`. Files are named like `data:data/hd/character/enemy/duriel/torso_lod0.model`.
+
+List the presets (characters, enemies, npcs, environments, objects, items, vfx, ui, audio, data, video):
+```
+casc.exe -presets
+```
+
+Extract the playable characters, the monsters and the levels, converting textures to PNG and DDS:
+```
+casc.exe -dir "C:\Program Files (x86)\Diablo II Resurrected" -x -o d2r -preset characters,enemies,environments -convert both
+```
+
+Extract everything (~30GB):
+```
+casc.exe -dir "C:\Program Files (x86)\Diablo II Resurrected" -x -o d2r
+```
+
+Extract only Andariel:
+```
+casc.exe -dir "C:\Program Files (x86)\Diablo II Resurrected" -x -o d2r -pattern "/andariel/" -convert png
+```
+
+D2R file formats:
+
+| Extension | Content | Notes |
+| --- | --- | --- |
+| `.texture` | HD textures | Converted with `-convert` (BC1/BC3/BC4/BC5/RGBA8). `_alb` albedo, `_nrm` normal map (DXT5nm, rebuilt as a regular normal map in PNG), `_orm` occlusion/roughness/metalness. |
+| `.model` | HD meshes | Granny 3D (`.gr2`, version 7, 64-bit). Open with Granny compatible tools. |
+| `.skeleton`, `.animations` | HD rigs and animations | Granny 3D. |
+| `.json` | HD materials, variants, presets | Plain text. |
+| `.dcc`, `.dc6`, `.cof` | Original 2D sprites and their layer composition | `data:data/global/...` |
+| `.dt1`, `.ds1` | Original 2D tiles and level presets | `data:data/global/tiles/...` |
+| `.txt`, `.tbl`, `.bin` | Game data tables and strings | |
+| `.flac`, `.webm` | Audio and videos | |
+
 ## Support
 
 | App | Code | Status |
 | --- | --- | --- |
+| Diablo II Resurrected | osi | done |
 | Diablo III | d3 | done |
 | StarCraft | s1 | done |
 | Warcraft III | w3 | done |
